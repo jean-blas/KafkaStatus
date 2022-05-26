@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os/exec"
 	"sort"
@@ -18,15 +19,14 @@ var configCmd = &cobra.Command{
 
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
-		broker := brokername
-		if broker == "" {
-			broker, err = bootstrap(clustername)
+		servers := brokername
+		if servers == "" {
+			servers, err = bootstrap(clustername)
 			logFatal(err)
 		}
-		fmt.Println("Display config of", clustername)
-
-		result, err := config_cmd(broker)
+		result, err := config_cmd(servers)
 		logFatal(err)
+		fmt.Println("Display config of", clustername)
 		conf := extractConf(result)
 		fmt.Println(config_toString(conf))
 	},
@@ -43,8 +43,11 @@ func init() {
 	configCmd.Flags().BoolVarP(&with_synonym, "synonym", "s", false, "Display the keys which correspond to synonym as well")
 }
 
-func config_cmd(broker string) (string, error) {
-	ecmd := exec.Command("kafka-configs.sh", "--bootstrap-server", broker, "--describe", "--broker", strconv.Itoa(config_broker), "--all")
+func config_cmd(servers string) (string, error) {
+	if err := check_conn(servers); err != nil {
+		return "", errors.New("No connection to the VMs\n" + err.Error())
+	}
+	ecmd := exec.Command("kafka-configs.sh", "--bootstrap-server", servers, "--describe", "--broker", strconv.Itoa(config_broker), "--all")
 	var out bytes.Buffer
 	ecmd.Stdout = &out
 	if err := ecmd.Run(); err != nil {
@@ -92,16 +95,16 @@ func extractConf(sconf string) []CONF {
 		if i == 0 {
 			continue
 		}
-		kvs := strings.SplitN(strings.TrimSpace(c), " ", 2)
-		if len(kvs) != 2 {
+		kvs := strings.SplitN(strings.TrimSpace(c), " ", 3)
+		if len(kvs) != 3 {
 			continue
 		}
 		i := strings.Split(kvs[0], "=")
 		b, err := strconv.ParseBool(strings.Split(kvs[1], "=")[1])
 		if err != nil {
-			fmt.Println("Bad value for kvs", kvs)
+			logErr(errors.New("Bad value for kvs " + kvs[1]))
 		}
-		y := strings.Split(strings.TrimSpace(c), "synonyms=")
+		y := strings.SplitN(strings.TrimSpace(c), "synonyms=", 2)
 		cc := CONF{key: i[0], value: i[1], synonym: y[1], sensitive: b}
 		conf = append(conf, cc)
 	}

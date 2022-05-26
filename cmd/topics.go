@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -27,71 +27,30 @@ var topicsCmd = &cobra.Command{
 	Short: "Display topic info of a cluster",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		brokers := make([]string, 0)
-		broker := brokername
-		if broker == "" {
-			clusternames := splitClustername(clustername)
-			for _, c := range clusternames {
-				broker, err = bootstrap(c)
-				logFatal(err)
-				brokers = append(brokers, broker)
-			}
-		} else {
-			brokers = append(brokers, broker)
-		}
-		// Display the broker health and exit
-		if bURP || bUMISR || bUAV || bAMISR || all {
-			var wg sync.WaitGroup
-			for _, broker := range brokers {
-				wg.Add(1)
-				go func(b string) {
-					checkBrokerHealth(b)
-					wg.Done()
-				}(broker)
-			}
-			wg.Wait()
+		servers, err := buildServers()
+		logFatal(err)
+
+		if bURP || bUMISR || bUAV || bAMISR || all { // Display the broker health and exit
+			checkServersHealth(servers)
 			return
 		}
-		topics := make(map[string]string, len(brokers))
-		if strings.TrimSpace(topics_topic) != "" {
-			// If topic defined display only these topics for all clusters
+
+		if strings.TrimSpace(topics_topic) != "" { // If topic defined display only these topics for all clusters
 			tpcs := strings.ReplaceAll(strings.TrimSpace(topics_topic), ",", "\n") //input like topic1,topic2,topic3
-			for _, broker := range brokers {
-				topics[broker] = tpcs
+			for _, s := range servers {
+				s.inputtopics = tpcs
 			}
 		} else { // Look for all topics in all clusters
-			var wg sync.WaitGroup
-			for _, broker := range brokers {
-				wg.Add(1)
-				go func(b string) {
-					tpcs, err := topics_cmdList(b)
-					logFatal(err)
-					topics[b] = tpcs
-					wg.Done()
-				}(broker)
-			}
-			wg.Wait()
-			if summary { //Display the topics properties for all clusters and exit
-				for _, v := range topics {
-					fmt.Println(strings.TrimSpace(v))
-				}
-				return
-			}
+			getTopicsFromClusters(servers)
 		}
-		// If topic undefined, display the topics list with/without details for all clusters
-		var wg sync.WaitGroup
-		for _, broker := range brokers {
-			wg.Add(1)
-			go func(b string) {
-				topicsDetailed, err := getDetails(b, strings.Split(strings.TrimSpace(topics[b]), "\n"))
-				logFatal(err)
-				sortTopicsDetails(&topicsDetailed)
-				fmt.Println(strings.Join([]string{b, toString(topicsDetailed)}, "\n"))
-				wg.Done()
-			}(broker)
+
+		if summary { // Display the topics properties for all clusters and exit
+			for _, t := range servers {
+				fmt.Println(strings.TrimSpace(t.inputtopics))
+			}
+		} else { // Display the topics list with details for all clusters
+			displayTopicWithDetails(servers)
 		}
-		wg.Wait()
 	},
 }
 
@@ -110,6 +69,86 @@ func init() {
 	topicsCmd.Flags().BoolVarP(&all, "all", "a", false, "Check all health options")
 }
 
+type topicDetails struct {
+	name, config            string
+	partitions, replication int
+}
+
+type topics struct {
+	cluster, bootstrp string
+	inputtopics       string
+}
+
+func displayTopicWithDetails(servers []topics) {
+	var wg sync.WaitGroup
+	for _, s := range servers {
+		wg.Add(1)
+		go func(s topics) {
+			topicsDetailed, err := getDetails(s.bootstrp, strings.Split(strings.TrimSpace(s.inputtopics), "\n"))
+			if err != nil {
+				log.Error("Error:", s.cluster, ":", err)
+			} else {
+				sortTopicsDetails(&topicsDetailed)
+				fmt.Println(strings.Join([]string{s.cluster, toString(topicsDetailed)}, "\n"))
+			}
+			wg.Done()
+		}(s)
+	}
+	wg.Wait()
+}
+
+// Construct the struct of bootstrap servers for each cluster
+func buildServers() ([]topics, error) {
+	tpcs := make([]topics, 0)
+	fqdn := brokername
+	if fqdn == "" {
+		clusternames := splitClustername(clustername)
+		for _, c := range clusternames {
+			server, err := bootstrap(c)
+			if err != nil {
+				return nil, err
+			}
+			tpcs = append(tpcs, topics{cluster: c, bootstrp: server})
+		}
+	} else {
+		cluster, err := toCluster(fqdn)
+		if err != nil {
+			return nil, err
+		}
+		tpcs = append(tpcs, topics{cluster: cluster, bootstrp: fqdn})
+	}
+	return tpcs, nil
+}
+
+func getTopicsFromClusters(servers []topics) {
+	var wg sync.WaitGroup
+	for i := range servers {
+		wg.Add(1)
+		go func(t *topics) {
+			tpcs, err := topics_cmdList(t.bootstrp)
+			if err != nil {
+				log.Error(t.cluster, err)
+			} else {
+				t.inputtopics = tpcs
+			}
+			wg.Done()
+		}(&servers[i])
+	}
+	wg.Wait()
+}
+
+func checkServersHealth(servers []topics) {
+	var wg sync.WaitGroup
+	for _, s := range servers {
+		wg.Add(1)
+		go func(c, s string) {
+			checkBrokerHealth(c, s)
+			wg.Done()
+		}(s.cluster, s.bootstrp)
+	}
+	wg.Wait()
+}
+
 // List all topics of the given cluster
 func topics_cmdList(broker string) (string, error) {
 	ecmd := exec.Command("kafka-topics.sh", "--bootstrap-server", broker, "--list")
@@ -119,11 +158,6 @@ func topics_cmdList(broker string) (string, error) {
 		return "", err
 	}
 	return out.String(), nil
-}
-
-type topicDetails struct {
-	name, config            string
-	partitions, replication int
 }
 
 func (t topicDetails) String() string {
@@ -197,26 +231,32 @@ func getDetails(broker string, topics []string) ([]topicDetails, error) {
 }
 
 // Check the URP, UMISR, AMISR and UNAV for the given broker
-func checkBrokerHealth(broker string) {
+func checkBrokerHealth(cluster, server string) {
+	if err := check_conn(server); err != nil {
+		log.Error(server + " " + err.Error())
+		return
+	}
 	var errURP, errUMISR, errAMISR, errUNAV error
 	var resURP, resUMISR, resAMISR, resUNAV string
 	var wg sync.WaitGroup
 	if all || bURP {
-		topics_runCmdForHealthCheckAsync(&wg, broker, URP, &resURP, &errURP)
+		topics_runCmdForHealthCheckAsync(&wg, server, URP, &resURP, &errURP)
 	}
 	if all || bUMISR {
-		topics_runCmdForHealthCheckAsync(&wg, broker, UMISR, &resUMISR, &errUMISR)
+		topics_runCmdForHealthCheckAsync(&wg, server, UMISR, &resUMISR, &errUMISR)
 	}
 	if all || bAMISR {
-		topics_runCmdForHealthCheckAsync(&wg, broker, AMISR, &resAMISR, &errAMISR)
+		topics_runCmdForHealthCheckAsync(&wg, server, AMISR, &resAMISR, &errAMISR)
 	}
 	if all || bUAV {
-		topics_runCmdForHealthCheckAsync(&wg, broker, UNAV, &resUNAV, &errUNAV)
+		topics_runCmdForHealthCheckAsync(&wg, server, UNAV, &resUNAV, &errUNAV)
 	}
 	wg.Wait()
-	logFatal(errURP, errUMISR, errAMISR, errUNAV)
+	if logErr(errURP, errUMISR, errAMISR, errUNAV) {
+		return
+	}
 	nURP, nUMISR, nAMISR, nUNAV := nbLines(resURP, resUMISR, resAMISR, resUNAV)
-	fmt.Printf("%s: URP: %3d, UMISR: %3d, AMISR: %3d, UNAV: %3d\n", clustername, nURP, nUMISR, nAMISR, nUNAV)
+	fmt.Printf("%s: URP: %3d, UMISR: %3d, AMISR: %3d, UNAV: %3d\n", cluster, nURP, nUMISR, nAMISR, nUNAV)
 	if !summary {
 		fmt.Println("\n URP:\n", resURP, "\n UMISR:\n", resUMISR, "\n AMISR:\n", resAMISR, "\n UNAV:\n", resUNAV)
 	}
@@ -238,14 +278,6 @@ func topics_runCmdForHealthCheckAsync(wg *sync.WaitGroup, broker, option string,
 		*res, *err = topics_cmdForHealthCheck(broker, option)
 		wg.Done()
 	}(res, err)
-}
-
-func logFatal(err ...error) {
-	for _, e := range err {
-		if e != nil {
-			log.Fatal(e)
-		}
-	}
 }
 
 func nbLines(res1, res2, res3, res4 string) (int, int, int, int) {

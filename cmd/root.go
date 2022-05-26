@@ -3,17 +3,21 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	homedir "github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 var cfgFile, clustername, brokername string
+var logLevel string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -29,7 +33,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		os.Exit(1)
 	}
 }
@@ -44,9 +48,25 @@ func init() {
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.task.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&clustername, "cluster", "c", "", "Cluster name (e.g. bku10)")
 	rootCmd.PersistentFlags().StringVarP(&brokername, "broker", "b", "", "Broker full name (e.g. bkuv1000.os.amadeus.net:9092)")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log", "l", "warn", "log level (trace, debug, info, warn, error, fatal)")
+
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	switch logLevel {
+	case "trace":
+		log.SetLevel(log.TraceLevel)
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warn":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -58,8 +78,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			log.Fatal(err)
 		}
 
 		// Search config in home directory with name ".task" (without extension).
@@ -75,7 +94,7 @@ func initConfig() {
 	}
 }
 
-// Convert a cluster name into a broker name
+// Convert a cluster name into a broker name (e.g. bku10 => bkuv1000.os.amadeus.net:9092,bku1001.os.amadeus.net:9092,bku1002.os.amadeus.net:9092)
 func bootstrap(clustername string) (string, error) {
 	if strings.TrimSpace(clustername) == "" {
 		return "", errors.New("bootstrap : cluster name is not defined")
@@ -94,11 +113,75 @@ func bootstrap(clustername string) (string, error) {
 	return "", errors.New("bootstrap [" + clustername + "] : bad format for cluster name")
 }
 
+func toCluster(brokers string) (string, error) {
+	broker := strings.Split(brokers, ",")
+	re := regexp.MustCompile(`b[k|z][p|t|g|c|u|x]v[0-9]{4}\\.os\\.amadeus\\.net:[0-9]{4}`)
+	if re.MatchString(broker[0]) {
+		b := broker[0]
+		return b[:3] + b[4:5], nil
+	}
+	return "", errors.New("Bad format for bootstrap servers; should be of the form fqdn:port (e.g. bkuv1000.os.amadeus.net:9092)")
+}
+
 // topic should be using comma as separator (e.g. topic1,topic2)
 func extractTopics(topic string) []string {
 	return strings.Split(topic, ",")
 }
 
+// clusters should be using comma separator (e.g. bku10,bku11,bku12)
 func splitClustername(clustername string) []string {
 	return strings.Split(clustername, ",")
+}
+
+// Kind of telnet to the host:port
+func raw_connect(host, port string) (bool, error) {
+	timeout := 500 * time.Millisecond
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
+	if err != nil {
+		return false, err
+	} else {
+		defer conn.Close()
+		log.Debug("Opened", net.JoinHostPort(host, port))
+		return true, nil
+	}
+}
+
+// Try to connect to each broker of the given (boostrap)servers to check the connection and port listening
+func check_conn(servers string) error {
+	vms := strings.Split(servers, ",")
+	con := false
+	var err error
+	for _, vm := range vms {
+		hp := strings.Split(vm, ":")
+		if len(hp) != 2 {
+			return errors.New("Bad format : broker should be of the form fqdn:port (e.g. bkuv1000.os.amadeus.net:9092)")
+		}
+		con, err = raw_connect(hp[0], hp[1])
+		if con {
+			break
+		}
+	}
+	if !con {
+		return err
+	}
+	return nil
+}
+
+func logFatal(err ...error) {
+	for _, e := range err {
+		if e != nil {
+			log.Fatal(e)
+		}
+	}
+}
+
+func logErr(err ...error) bool {
+	ok := false
+	for _, e := range err {
+		if e != nil {
+			log.Error(e)
+			ok = true
+		}
+	}
+	return ok
 }

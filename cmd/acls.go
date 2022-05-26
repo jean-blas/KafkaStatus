@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"os/exec"
@@ -20,9 +21,9 @@ var aclsCmd = &cobra.Command{
 
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
-		broker := brokername
-		if broker == "" {
-			broker, err = bootstrap(clustername)
+		servers := brokername
+		if servers == "" {
+			servers, err = bootstrap(clustername)
 			logFatal(err)
 		}
 		fmt.Println("Display acls of ", clustername)
@@ -32,18 +33,19 @@ var aclsCmd = &cobra.Command{
 			for _, topic := range topics {
 				wg.Add(1)
 				go func(t string) {
-					result, err := acls_cmdWithTopic(broker, t)
+					result, err := acls_cmdWithTopic(servers, t)
 					if err != nil {
 						log.Print("ERROR: ", err)
+					} else {
+						acls := extractAcls(result)
+						fmt.Println(acls)
 					}
-					acls := extractAcls(result)
-					fmt.Println(acls)
 					wg.Done()
 				}(topic)
 			}
 			wg.Wait()
 		} else {
-			result, err := acls_cmd(broker)
+			result, err := acls_cmd(servers)
 			logFatal(err)
 			acls := extractAcls(result)
 			fmt.Println(acls_toString(acls))
@@ -59,8 +61,11 @@ func init() {
 	aclsCmd.Flags().StringVarP(&acls_topic, "topic", "t", "", "Topic names using comma as separator (e.g. topic1,topic2)")
 }
 
-func acls_cmdWithTopic(broker, topic string) (string, error) {
-	ecmd := exec.Command("kafka-acls.sh", "--bootstrap-server", broker, "--list", "--topic", topic)
+func acls_cmdWithTopic(servers, topic string) (string, error) {
+	if err := check_conn(servers); err != nil {
+		return "", errors.New("No connection to the VMs\n" + err.Error())
+	}
+	ecmd := exec.Command("kafka-acls.sh", "--bootstrap-server", servers, "--list", "--topic", topic)
 	var out bytes.Buffer
 	ecmd.Stdout = &out
 	if err := ecmd.Run(); err != nil {
@@ -69,8 +74,11 @@ func acls_cmdWithTopic(broker, topic string) (string, error) {
 	return out.String(), nil
 }
 
-func acls_cmd(broker string) (string, error) {
-	ecmd := exec.Command("kafka-acls.sh", "--bootstrap-server", broker, "--list")
+func acls_cmd(servers string) (string, error) {
+	if err := check_conn(servers); err != nil {
+		return "", errors.New("No connection to the VMs\n" + err.Error())
+	}
+	ecmd := exec.Command("kafka-acls.sh", "--bootstrap-server", servers, "--list")
 	var out bytes.Buffer
 	ecmd.Stdout = &out
 	if err := ecmd.Run(); err != nil {

@@ -20,4 +20,4 @@ func main() {
 	cmd.Execute()
 }
 
-//TODO check the connection (when the bkpv0000/1/2 is dead, can not connect)
+//TODO check the connection (when the bkpv0000/1/2 are dead, can not connect)
