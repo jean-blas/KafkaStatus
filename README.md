@@ -25,3 +25,4 @@ Flags:
   -b, --broker string    Broker full name (e.g. bkuv1000.os.amadeus.net:9092)
   -c, --cluster string   Cluster name (e.g. bku10)
   -h, --help             help for KafkaStatus
+  -l, --log string       log level (trace, debug, info, warn, error, fatal) (default "warn")
