@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -47,6 +48,7 @@ func config_cmd(servers string) (string, error) {
 	if err := check_conn(servers); err != nil {
 		return "", errors.New("No connection to the VMs\n" + err.Error())
 	}
+	log.Debug("Run command : kafka-configs.sh --bootstrap-server" + servers + " --describe --broker " + strconv.Itoa(config_broker) + " --all")
 	ecmd := exec.Command("kafka-configs.sh", "--bootstrap-server", servers, "--describe", "--broker", strconv.Itoa(config_broker), "--all")
 	var out bytes.Buffer
 	ecmd.Stdout = &out

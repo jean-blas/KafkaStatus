@@ -53,6 +53,10 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+}
+
+func logSetLevel() {
 	switch logLevel {
 	case "trace":
 		log.SetLevel(log.TraceLevel)
@@ -92,6 +96,8 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
+
+	logSetLevel()
 }
 
 // Convert a cluster name into a broker name (e.g. bku10 => bkuv1000.os.amadeus.net:9092,bku1001.os.amadeus.net:9092,bku1002.os.amadeus.net:9092)
@@ -102,6 +108,7 @@ func bootstrap(clustername string) (string, error) {
 	re := regexp.MustCompile(`b[k|z].[0-9]{2}`)
 	suffixe := ".os.amadeus.net:9092"
 	if re.MatchString(clustername) {
+		log.Debug("Computing 3 brokers for cluster " + clustername + " on port 9092")
 		broker := clustername[:3] + "v" + clustername[3:]
 		res := broker + "00" + suffixe
 		for i := 1; i < 3; i++ {
@@ -135,13 +142,14 @@ func splitClustername(clustername string) []string {
 
 // Kind of telnet to the host:port
 func raw_connect(host, port string) (bool, error) {
+	log.Debug("Trying to connect to " + host + ":" + port)
 	timeout := 500 * time.Millisecond
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
 	if err != nil {
 		return false, err
 	} else {
 		defer conn.Close()
-		log.Debug("Opened", net.JoinHostPort(host, port))
+		log.Debug("Opened ", net.JoinHostPort(host, port))
 		return true, nil
 	}
 }

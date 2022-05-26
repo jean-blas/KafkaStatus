@@ -28,6 +28,7 @@ var topicsCmd = &cobra.Command{
 
 	Run: func(cmd *cobra.Command, args []string) {
 		servers, err := buildServers()
+		log.Debug(servers)
 		logFatal(err)
 
 		if bURP || bUMISR || bUAV || bAMISR || all { // Display the broker health and exit
@@ -151,6 +152,7 @@ func checkServersHealth(servers []topics) {
 
 // List all topics of the given cluster
 func topics_cmdList(broker string) (string, error) {
+	log.Debug("Run command : kafka-topics.sh --bootstrap-server " + broker + " --list")
 	ecmd := exec.Command("kafka-topics.sh", "--bootstrap-server", broker, "--list")
 	var out bytes.Buffer
 	ecmd.Stdout = &out
@@ -189,6 +191,7 @@ func sortTopicsDetails(a *[]topicDetails) {
 }
 
 func topics_cmdForTopic(broker, topic string) (string, error) {
+	log.Debug("Run command : kafka-topics.sh --bootstrap-server " + broker + " --describe --topic " + topic)
 	ecmd := exec.Command("kafka-topics.sh", "--bootstrap-server", broker, "--describe", "--topic", topic)
 	var out bytes.Buffer
 	ecmd.Stdout = &out
@@ -263,6 +266,7 @@ func checkBrokerHealth(cluster, server string) {
 }
 
 func topics_cmdForHealthCheck(broker, option string) (string, error) {
+	log.Debug("Run command : kafka-topics.sh --bootstrap-server " + broker + " --describe " + option)
 	ecmd := exec.Command("kafka-topics.sh", "--bootstrap-server", broker, "--describe", option)
 	var out bytes.Buffer
 	ecmd.Stdout = &out

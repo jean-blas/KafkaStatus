@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ var aclsCmd = &cobra.Command{
 				go func(t string) {
 					result, err := acls_cmdWithTopic(servers, t)
 					if err != nil {
-						log.Print("ERROR: ", err)
+						log.Error(err)
 					} else {
 						acls := extractAcls(result)
 						fmt.Println(acls)
@@ -65,6 +65,7 @@ func acls_cmdWithTopic(servers, topic string) (string, error) {
 	if err := check_conn(servers); err != nil {
 		return "", errors.New("No connection to the VMs\n" + err.Error())
 	}
+	log.Debug("Run command : kafka-acls.sh --bootstrap-server " + servers + " --list --topic " + topic)
 	ecmd := exec.Command("kafka-acls.sh", "--bootstrap-server", servers, "--list", "--topic", topic)
 	var out bytes.Buffer
 	ecmd.Stdout = &out
@@ -78,6 +79,7 @@ func acls_cmd(servers string) (string, error) {
 	if err := check_conn(servers); err != nil {
 		return "", errors.New("No connection to the VMs\n" + err.Error())
 	}
+	log.Debug("Run command : kafka-acls.sh --bootstrap-server " + servers + " --list")
 	ecmd := exec.Command("kafka-acls.sh", "--bootstrap-server", servers, "--list")
 	var out bytes.Buffer
 	ecmd.Stdout = &out
