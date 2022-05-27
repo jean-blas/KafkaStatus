@@ -23,12 +23,12 @@ var aclsCmd = &cobra.Command{
 		var err error
 		servers := brokername
 		if servers == "" {
-			servers, err = bootstrap(clustername)
+			servers, err = clusterToBootstrap(clustername)
 			logFatal(err)
 		}
 		fmt.Println("Display acls of ", clustername)
 		if strings.TrimSpace(acls_topic) != "" {
-			topics := extractTopics(acls_topic)
+			topics := strings.Split(acls_topic, ",")
 			var wg sync.WaitGroup
 			for _, topic := range topics {
 				wg.Add(1)

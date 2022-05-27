@@ -22,7 +22,7 @@ var configCmd = &cobra.Command{
 		var err error
 		servers := brokername
 		if servers == "" {
-			servers, err = bootstrap(clustername)
+			servers, err = clusterToBootstrap(clustername)
 			logFatal(err)
 		}
 		result, err := config_cmd(servers)
@@ -34,14 +34,13 @@ var configCmd = &cobra.Command{
 }
 
 var config_broker int
-var with_null, with_synonym bool
+var with_null bool
 
 func init() {
 	rootCmd.AddCommand(configCmd)
 	// Cobra supports local flags which will only run when this command is called directly, e.g.:
 	configCmd.Flags().IntVarP(&config_broker, "number", "n", 0, "Broker ID)")
-	configCmd.Flags().BoolVarP(&with_null, "null", "u", false, "Display the keys which have null value")
-	configCmd.Flags().BoolVarP(&with_synonym, "synonym", "s", false, "Display the keys which correspond to synonym as well")
+	configCmd.Flags().BoolVarP(&with_null, "null", "", false, "Display the keys which have null value")
 }
 
 func config_cmd(servers string) (string, error) {
@@ -82,7 +81,7 @@ func config_toString(c []CONF) string {
 	for _, cc := range c {
 		if cc.value != "null" || with_null {
 			s += fmt.Sprintln(cc.key, ":", cc.value)
-			if with_synonym {
+			if !short {
 				s += fmt.Sprintln("synonym=", cc.synonym)
 			}
 		}
