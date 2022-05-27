@@ -38,13 +38,12 @@ var topicsCmd = &cobra.Command{
 
 		if strings.TrimSpace(topics_topic) != "" { // If topic defined display only these topics for all clusters
 			tpcs := strings.ReplaceAll(strings.TrimSpace(topics_topic), ",", "\n") //input like topic1,topic2,topic3
-			for _, s := range servers {
-				s.inputtopics = tpcs
+			for i := range servers {
+				servers[i].inputtopics = tpcs
 			}
 		} else { // Look for all topics in all clusters
 			getTopicsFromClusters(servers)
 		}
-
 		if summary { // Display the topics properties for all clusters and exit
 			for _, t := range servers {
 				fmt.Println(strings.TrimSpace(t.inputtopics))
