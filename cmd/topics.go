@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Represent the acls status command
+// Represent the topics status command
 var topicsCmd = &cobra.Command{
 	Use:   "topic",
 	Short: "Display topic info of a cluster",

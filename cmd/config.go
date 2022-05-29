@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Represent the acls status command
+// Represent the config status command
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Display the config (static and dynamic) for the given cluster",

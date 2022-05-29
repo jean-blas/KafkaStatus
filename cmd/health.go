@@ -18,10 +18,13 @@ const (
 	UNAV  = "--unavailable-partitions"
 )
 
-// Represent the acls status command
+// Represent the health status command
 var healthCmd = &cobra.Command{
 	Use:   "health",
 	Short: "Check health info of a cluster",
+	Long: `Used together with git, check the health of all clusters that are in the branch repository (e.g. ERDING_DEV)
+	Note : if no option is selected (like --urp or --umisr), then all options will be checked.
+	e.g. go run kstat.go --git_branch ERDING_DEV --git_login jimbert --short health `,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		var servers []SERVER
@@ -54,11 +57,10 @@ var bURP, bUMISR, bUAV, bAMISR bool
 func init() {
 	rootCmd.AddCommand(healthCmd)
 	// Cobra supports local flags which will only run when this command is called directly, e.g.:
-	healthCmd.Flags().BoolVarP(&bURP, "urp", "", false, "Look for under replicated partitions")
-	healthCmd.Flags().BoolVarP(&bUMISR, "umisr", "", false, "Look for under min in sync partitions")
-	healthCmd.Flags().BoolVarP(&bAMISR, "amisr", "", false, "Look for at min in sync partitions")
-	healthCmd.Flags().BoolVarP(&bUAV, "uav", "", false, "Look for partitions whose leader is unavailable")
-
+	healthCmd.Flags().BoolVarP(&bURP, "urp", "", false, "Look only for under replicated partitions")
+	healthCmd.Flags().BoolVarP(&bUMISR, "umisr", "", false, "Look only for under min in sync partitions")
+	healthCmd.Flags().BoolVarP(&bAMISR, "amisr", "", false, "Look only for at min in sync partitions")
+	healthCmd.Flags().BoolVarP(&bUAV, "uav", "", false, "Look only for partitions whose leader is unavailable")
 }
 
 func checkServersHealth(servers []SERVER) {

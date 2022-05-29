@@ -22,8 +22,14 @@ import (
 
 // **************** CLUSTER / BROKERS / TOPICS *****************************
 
+type GROUP struct {
+	name, state       string
+	describe, members []string
+}
+
 type SERVER struct {
 	cluster, bootstrap, topics string
+	groups                     []GROUP
 }
 
 // Construct the struct of bootstrap servers for each cluster
