@@ -43,16 +43,19 @@ var topicsCmd = &cobra.Command{
 }
 
 var topics_topic string
+var topics_describe bool
 
 func init() {
 	rootCmd.AddCommand(topicsCmd)
 	// Cobra supports local flags which will only run when this command is called directly, e.g.:
 	topicsCmd.Flags().StringVarP(&topics_topic, "topic", "t", "", "Topic names using comma as separator (e.g. topic1,topic2)")
+	topicsCmd.Flags().BoolVarP(&topics_describe, "describe", "d", false, "Show the details of partitions")
 }
 
 type topicDetails struct {
-	name, config            string
-	partitions, replication int
+	name, config                string
+	nbOfPartitions, replication int
+	partitions                  []string
 }
 
 func displayTopicWithDetails(servers []SERVER) {
@@ -103,7 +106,7 @@ func topics_cmdList(broker string) (string, error) {
 }
 
 func (t topicDetails) String() string {
-	return fmt.Sprintf("%s : p=%d  r=%d  c=%s\n", t.name, t.partitions, t.replication, t.config)
+	return fmt.Sprintf("%s : p=%d  r=%d  c=%s\n", t.name, t.nbOfPartitions, t.replication, t.config)
 }
 
 func toString(at []topicDetails) string {
@@ -115,16 +118,24 @@ func toString(at []topicDetails) string {
 	}
 	s := ""
 	for _, t := range at {
-		s += fmt.Sprintf("%-*s : p=%d  r=%d  c=%s\n", maxLName, t.name, t.partitions, t.replication, t.config)
+		s += fmt.Sprintf("%-*s : p=%d  r=%d  c=%s\n", maxLName, t.name, t.nbOfPartitions, t.replication, t.config)
+		if topics_describe {
+			s += partitionsToString(t.partitions)
+			s += "\n"
+		}
 	}
 	return s
+}
+
+func partitionsToString(p []string) string {
+	return strings.Join(p, "\n")
 }
 
 func sortTopicsDetails(a *[]topicDetails) {
 	c := *a
 	sort.Slice(*a, func(i, j int) bool {
 		if c[i].name == c[j].name {
-			return c[i].partitions < c[j].partitions
+			return c[i].nbOfPartitions < c[j].nbOfPartitions
 		}
 		return c[i].name < c[j].name
 	})
@@ -154,16 +165,25 @@ func getDetails(broker string, topics []string) ([]topicDetails, error) {
 				wg.Done()
 				return
 			}
-			for _, l := range strings.Split(res, "\n") {
-				line := strings.TrimSpace(l)
+			lines := strings.Split(res, "\n")
+			for i := 0; i < len(lines); {
+				line := strings.TrimSpace(lines[i])
 				if re.MatchString(line) {
 					as := re.FindStringSubmatch(line)
 					if len(as) == 5 {
 						p, _ := strconv.Atoi(as[2])
 						r, _ := strconv.Atoi(as[3])
-						*td = append(*td, topicDetails{name: strings.TrimSpace(as[1]), partitions: p, replication: r, config: as[4]})
+						partitions := make([]string, p)
+						for j := 0; j < p; j++ {
+							partitions[j] = lines[j+i+1]
+						}
+						details := topicDetails{name: strings.TrimSpace(as[1]), nbOfPartitions: p, replication: r, config: as[4], partitions: partitions}
+						*td = append(*td, details)
+						i += p + 1
 					}
 					break
+				} else {
+					i += 1
 				}
 			}
 			wg.Done()
