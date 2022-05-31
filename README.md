@@ -1,28 +1,64 @@
 # KafkaStatus
 
-This CLI GO tool is aimed at gathering information from a Kafka cluster.
+This tool is aimed at gathering information from some Kafka clusters. Some advantages over a simple kafka command is:
+*  the possibility to target several clusters at once (using comma as names separator e.g. cluster1,cluster2,cluster3)
+* the same applies for topic names (e.g. topic1,topic2)
+* to run all sub-commands as concurrent tasks, speeding the process drastically
+* to get some health check for all cluster of a git branch
 
-Available Commands:
+### Available Commands:
 
-  acl         Display acls of all or subset topics of a cluster
+  * acl
+
+Display acls of all or subset topics of a cluster
+
     -t, --topic string   Topic names using comma as separator (e.g. topic1,topic2)
 
-  config      Display the config (static and dynamic) for the given cluster
-    -u, --null           Display the keys which have null value
-    -n, --number int     Broker ID)
-    -s, --synonym        Display the keys which correspond to synonym as well
+  * config
 
-  topic       Display topic info of a cluster
-    -a, --all            Check all health options
+Display the config (static and dynamic) for the given cluster
+
+        --null           Display the keys which have null value
+    -n, --number int     Broker ID)
+
+  * topic
+
+Display topic info of a cluster
+
+    -d, --describe       Show the details of partitions
     -s, --sum            Display only a summary of the output
     -t, --topic string   Topic names using comma as separator (e.g. topic1,topic2)
-    --amisr              Look for at min in sync partitions
-    --uav                Look for partitions whose leader is unavailable
-    --umisr              Look for under min in sync partitions
-    --urp                Look for under replicated partitions
 
-Flags:
-  -b, --broker string    Broker full name (e.g. bkuv1000.os.amadeus.net:9092)
-  -c, --cluster string   Cluster name (e.g. bku10)
-  -h, --help             help for KafkaStatus
-  -l, --log string       log level (trace, debug, info, warn, error, fatal) (default "warn")
+  * group
+
+By default, get the list of groups (option --short) or the list of groups along with their state (default, no option) of the given clusters (clusters are comma separated).
+
+If a group is passed (or several groups with comma separator), then describe, members and state are retrieved for the given group(s).
+
+    -g, --group string   Groups to describe (separator is comma for several groups)
+
+  * health
+
+Used together with git, check the health of all clusters that are in the branch repository
+
+Note : if no option is selected (like --urp or --umisr), then all options will be checked.
+
+e.g. go run kstat.go --git_branch YOUR_BRANCH --git_login YOUR_LOGING --short health
+
+    --amisr   Look only for at min in sync partitions
+    --uav     Look only for partitions whose leader is unavailable
+    --umisr   Look only for under min in sync partitions
+    --urp     Look only for under replicated partitions
+
+### Flags:
+
+    -b, --broker string       Broker full name (e.g. bkuv1000.os.amadeus.net:9092)
+    -c, --cluster string      Cluster name (e.g. bku10)
+        --git_branch string   git branch to checkout (e.g. ERDING_TL1)
+    -u, --git_login string    git login
+    -w, --git_passwd string   git password
+        --git_repo string     git repository to clone (default "https://rndwww.nce.amadeus.net/git/scm/kafka/ansible-configs.git")
+    -h, --help                help for kstat
+    -l, --log string          log level (e.g. trace, debug, info, warn, error, fatal) (default "warn")
+    -s, --short               When available, display only a short version of the results
+        --timeout int         Timeout used when checking the connection (default 500)
