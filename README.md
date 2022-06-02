@@ -26,7 +26,6 @@ Display the config (static and dynamic) for the given cluster
 Display topic info of a cluster
 
     -d, --describe       Show the details of partitions
-    -s, --sum            Display only a summary of the output
     -t, --topic string   Topic names using comma as separator (e.g. topic1,topic2)
 
   * group
