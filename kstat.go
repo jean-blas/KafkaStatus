@@ -20,4 +20,7 @@ func main() {
 	cmd.Execute()
 }
 
-//TODO check the connection (when the bkpv0000/1/2 are dead, can not connect)
+// TODO : check brokers load in terms of balance of partitions, etc.
+// TODO : check zookeeper
+// TODO : check the partition size, etc. kafka-log-dirs.sh --bootstrap-server bktv0900.os.amadeus.net:9092 --describe --broker-list 0
+// TODO : get the equivalent of kafka-cluster-status

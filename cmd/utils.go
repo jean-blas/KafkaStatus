@@ -77,10 +77,10 @@ func clusterToBootstrap(clustername string) (string, error) {
 
 func toCluster(brokers string) (string, error) {
 	broker := strings.Split(brokers, ",")
-	re := regexp.MustCompile(`b[k|z][p|t|g|c|u|x]v[0-9]{4}\\.os\\.amadeus\\.net:[0-9]{4}`)
+	re := regexp.MustCompile(`b[k|z][p|t|g|c|u|x]v[0-9]{4}\.os\.amadeus\.net:[0-9]{4}`)
 	if re.MatchString(broker[0]) {
 		b := broker[0]
-		return b[:3] + b[4:5], nil
+		return b[:3] + b[4:6], nil
 	}
 	return "", errors.New("Bad format for bootstrap servers; should be of the form fqdn:port (e.g. bkuv1000.os.amadeus.net:9092)")
 }
@@ -103,6 +103,7 @@ func raw_connect(host, port string) (bool, error) {
 
 // Try to connect to each broker of the given (boostrap)servers to check the connection and port listening
 func check_conn(servers string) error {
+	log.Debug(fmt.Sprintf("Checking connection of %s", servers))
 	vms := strings.Split(servers, ",")
 	con := false
 	var err error
