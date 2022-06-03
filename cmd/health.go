@@ -30,24 +30,11 @@ var healthCmd = &cobra.Command{
 		var servers []SERVER
 		var err error
 		if strings.TrimSpace(gitBranch) != "" { // Build the inventory from git branch
-			fs, err := cloneInMemory(gitBranch)
-			logFatal(err)
-			inv, err := buildInventory(fs)
-			logFatal(err)
-			for _, i := range inv {
-				bootstrp, err := clusterToBootstrap(i)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-				servers = append(servers, SERVER{cluster: i, bootstrap: bootstrp})
-			}
-			log.Debug(servers)
+			servers, err = buildServersFromGit()
 		} else {
 			servers, err = buildServers() // Build the inventory from the command line [-c cluster1,cluster2,...]
-			log.Debug(servers)
-			logFatal(err)
 		}
+		logFatal(err)
 		checkServersHealth(servers)
 	},
 }

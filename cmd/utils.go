@@ -27,9 +27,44 @@ type GROUP struct {
 	describe, members []string
 }
 
+// structure of the node exporter metric
+type METRIC struct {
+	h string // HELP as in the exporter /metrics
+	l string // full line
+	v string // value
+}
+
+type BROKERMETRICS struct {
+	metrics map[string]METRIC
+}
+
 type SERVER struct {
 	cluster, bootstrap, topics string
 	groups                     []GROUP
+	brokermetrics              []BROKERMETRICS // One BROKERMETRICS per broker
+}
+
+// Construct the struct of bootstrap servers for each cluster from the git branch inventory
+func buildServersFromGit() ([]SERVER, error) {
+	servers := make([]SERVER, 0)
+	fs, err := cloneInMemory(gitBranch)
+	if err != nil {
+		return nil, err
+	}
+	inv, err := buildInventory(fs)
+	if err != nil {
+		return nil, err
+	}
+	for _, i := range inv {
+		bootstrp, err := clusterToBootstrap(i)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		servers = append(servers, SERVER{cluster: i, bootstrap: bootstrp})
+	}
+	log.Debug(servers)
+	return servers, nil
 }
 
 // Construct the struct of bootstrap servers for each cluster
@@ -52,6 +87,7 @@ func buildServers() ([]SERVER, error) {
 		}
 		tpcs = append(tpcs, SERVER{cluster: cluster, bootstrap: fqdn})
 	}
+	log.Debug(tpcs)
 	return tpcs, nil
 }
 
@@ -66,7 +102,7 @@ func clusterToBootstrap(clustername string) (string, error) {
 		log.Debug("Computing 3 brokers for cluster " + clustername + " on port 9092")
 		broker := clustername[:3] + "v" + clustername[3:]
 		res := broker + "00" + suffixe
-		for i := 1; i < 5; i++ {
+		for i := 1; i < 3; i++ {
 			res += fmt.Sprintf(",%s%02d%s", broker, i, suffixe)
 		}
 		return res, nil
@@ -231,4 +267,13 @@ func load(filename billy.File) ([]string, error) {
 		return nil, err
 	}
 	return lines, nil
+}
+
+// ******************** OTHER *******************************************
+
+func max(a, b int) int {
+	if a < b {
+		return b
+	}
+	return a
 }

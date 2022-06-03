@@ -8,6 +8,18 @@ This tool is aimed at gathering information from some Kafka clusters. Some advan
 
 ### Available Commands:
 
+```
+  acl         Display acls of all or subset topics of a cluster
+  config      Display the config (static and dynamic) for the given cluster
+  group       Check group info of a cluster
+  health      Check health info of a cluster
+  help        Help about any command
+  info        Display some stats of the given cluster(s)
+  topic       Display topic info of a cluster
+```
+
+### Commands options
+
   * acl
 
 Display acls of all or subset topics of a cluster
@@ -49,7 +61,9 @@ e.g. go run kstat.go --git_branch YOUR_BRANCH --git_login YOUR_LOGING --short he
     --umisr   Look only for under min in sync partitions
     --urp     Look only for under replicated partitions
 
-### Flags:
+### Global flags:
+
+These options are available for all commands, but may not be used in some commands.
 
     -b, --broker string       Broker full name (e.g. bkuv1000.os.amadeus.net:9092)
     -c, --cluster string      Cluster name (e.g. bku10)
@@ -58,6 +72,7 @@ e.g. go run kstat.go --git_branch YOUR_BRANCH --git_login YOUR_LOGING --short he
     -w, --git_passwd string   git password
         --git_repo string     git repository to clone (default "https://rndwww.nce.amadeus.net/git/scm/kafka/ansible-configs.git")
     -h, --help                help for kstat
+        --http-timeout int    Timeout used when sending a request (milliseconds) (default 2000)
     -l, --log string          log level (e.g. trace, debug, info, warn, error, fatal) (default "warn")
     -s, --short               When available, display only a short version of the results
-        --timeout int         Timeout used when checking the connection (default 500)
+        --timeout int         Timeout used when checking the connection (milliseconds) (default 500)

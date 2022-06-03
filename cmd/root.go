@@ -15,7 +15,7 @@ var cfgFile, clustername, brokername string
 var logLevel string
 var gitRepo, gitBranch, gitLogin, gitPasswd string
 var short bool
-var timeout int
+var timeout, httpTimeout int
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -47,12 +47,13 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&clustername, "cluster", "c", "", "Cluster name (e.g. bku10)")
 	rootCmd.PersistentFlags().StringVarP(&brokername, "broker", "b", "", "Broker full name (e.g. bkuv1000.os.amadeus.net:9092)")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log", "l", "warn", "log level (e.g. trace, debug, info, warn, error, fatal)")
-	rootCmd.PersistentFlags().StringVarP(&gitRepo, "git_repo", "", ansible_config, "git repository to clone")
-	rootCmd.PersistentFlags().StringVarP(&gitBranch, "git_branch", "", "", "git branch to checkout (e.g. ERDING_TL1)")
-	rootCmd.PersistentFlags().StringVarP(&gitLogin, "git_login", "u", "", "git login")
-	rootCmd.PersistentFlags().StringVarP(&gitPasswd, "git_passwd", "w", "", "git password")
+	rootCmd.PersistentFlags().StringVarP(&gitRepo, "git-repo", "", ansible_config, "git repository to clone")
+	rootCmd.PersistentFlags().StringVarP(&gitBranch, "git-branch", "", "", "git branch to checkout (e.g. ERDING_TL1)")
+	rootCmd.PersistentFlags().StringVarP(&gitLogin, "git-login", "u", "", "git login")
+	rootCmd.PersistentFlags().StringVarP(&gitPasswd, "git-passwd", "w", "", "git password")
 	rootCmd.PersistentFlags().BoolVarP(&short, "short", "s", false, "When available, display only a short version of the results")
-	rootCmd.PersistentFlags().IntVarP(&timeout, "timeout", "", 500, "Timeout used when checking the connection")
+	rootCmd.PersistentFlags().IntVarP(&timeout, "timeout", "", 500, "Timeout used when checking the connection (milliseconds)")
+	rootCmd.PersistentFlags().IntVarP(&httpTimeout, "http-timeout", "", 2000, "Timeout used when sending a request (milliseconds)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
