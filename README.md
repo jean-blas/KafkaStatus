@@ -31,7 +31,7 @@ Display acls of all or subset topics of a cluster
 Display the config (static and dynamic) for the given cluster
 
         --null           Display the keys which have null value
-    -n, --number int     Broker ID)
+    -n, --number int     Broker ID
 
   * topic
 

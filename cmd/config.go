@@ -27,7 +27,7 @@ var configCmd = &cobra.Command{
 		}
 		result, err := config_cmd(servers)
 		logFatal(err)
-		fmt.Println("Display config of", clustername)
+		fmt.Println("Config of", clustername)
 		conf := extractConf(result)
 		fmt.Println(config_toString(conf))
 	},
@@ -39,7 +39,7 @@ var with_null bool
 func init() {
 	rootCmd.AddCommand(configCmd)
 	// Cobra supports local flags which will only run when this command is called directly, e.g.:
-	configCmd.Flags().IntVarP(&config_broker, "number", "n", 0, "Broker ID)")
+	configCmd.Flags().IntVarP(&config_broker, "number", "n", 0, "Broker ID")
 	configCmd.Flags().BoolVarP(&with_null, "null", "", false, "Display the keys which have null value")
 }
 

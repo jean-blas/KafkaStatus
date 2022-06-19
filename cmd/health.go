@@ -24,7 +24,9 @@ var healthCmd = &cobra.Command{
 	Short: "Check health info of a cluster",
 	Long: `Used together with git, check the health of all clusters that are in the branch repository (e.g. ERDING_DEV)
 	Note : if no option is selected (like --urp or --umisr), then all options will be checked.
-	e.g. go run kstat.go --git_branch ERDING_DEV --git_login jimbert --short health `,
+	e.g. go run kstat.go --git-branch ERDING_DEV --git-login jimbert --short health
+	You may as well reference the bootstrap servers from the git branch:
+	e.g. go run kstat.go --git-branch ERDING_DEV --git-login jimbert --short --cluster bkt28 health `,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		var servers []SERVER

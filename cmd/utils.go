@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"regexp"
 	"strings"
 	"syscall"
@@ -16,6 +17,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"github.com/relex/aini"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/term"
 )
@@ -44,24 +46,52 @@ type SERVER struct {
 	brokermetrics              []BROKERMETRICS // One BROKERMETRICS per broker
 }
 
-// Construct the struct of bootstrap servers for each cluster from the git branch inventory
+func buildInventoryFromGit(invType string) (string, error) {
+	fs, err := cloneInMemory(gitBranch)
+	if err != nil {
+		return "", err
+	}
+	return buildBrokerInventory(fs, invType)
+}
+
+// Construct the struct of servers (clustername and bootstrap servers) for each cluster from the git branch inventory
 func buildServersFromGit() ([]SERVER, error) {
 	servers := make([]SERVER, 0)
 	fs, err := cloneInMemory(gitBranch)
 	if err != nil {
 		return nil, err
 	}
-	inv, err := buildInventory(fs)
+	arr, err := fs.ReadDir("/")
 	if err != nil {
 		return nil, err
 	}
-	for _, i := range inv {
-		bootstrp, err := clusterToBootstrap(i)
-		if err != nil {
-			log.Error(err)
-			continue
+	var re *regexp.Regexp
+	if clustername == "" {
+		re = regexp.MustCompile(`b[k][p|t|g|c|u|x][0-9]{2}$`)
+	} else {
+		re = regexp.MustCompile(clustername + `$`)
+	}
+	for _, a := range arr {
+		if re.MatchString(a.Name()) {
+			src, err := fs.Open(a.Name())
+			if logErr(err) {
+				continue
+			}
+			defer src.Close()
+			cfg, err := aini.Parse(src)
+			if logErr(err) {
+				continue
+			}
+			if cfg.Groups["kafka_servers"].Hosts != nil {
+				boots := make([]string, 0)
+				for h := range cfg.Groups["kafka_servers"].Hosts {
+					boots = append(boots, h+":9092")
+				}
+				servers = append(servers, SERVER{cluster: a.Name(), bootstrap: strings.Join(boots, ",")})
+			} else {
+				logErr(errors.New("No bootstrap servers found for cluster " + a.Name()))
+			}
 		}
-		servers = append(servers, SERVER{cluster: i, bootstrap: bootstrp})
 	}
 	log.Debug(servers)
 	return servers, nil
@@ -233,8 +263,56 @@ func printRepo(fs billy.Filesystem) {
 	}
 }
 
+// Build an ansible-like inventory of all kafka clusters
+func buildBrokerInventory(fs billy.Filesystem, invType string) (string, error) {
+	arr, err := fs.ReadDir("/")
+	if err != nil {
+		return "", err
+	}
+	inv := make([]string, 0)
+	var re *regexp.Regexp
+	if clustername == "" {
+		re = regexp.MustCompile(`b[k][p|t|g|c|u|x][0-9]{2}$`)
+	} else {
+		re = regexp.MustCompile(clustername + `$`)
+	}
+	for _, a := range arr {
+		if re.MatchString(a.Name()) {
+			inv = append(inv, "["+a.Name()+"]")
+			src, err := fs.Open(a.Name())
+			if logErr(err) {
+				continue
+			}
+			defer src.Close()
+			cfg, err := aini.Parse(src)
+			if logErr(err) {
+				continue
+			}
+			switch invType {
+			case "kafka":
+				for h := range cfg.Groups["kafka_servers"].Hosts {
+					inv = append(inv, h)
+				}
+			case "zookeeper":
+				for h := range cfg.Groups["zk_servers"].Hosts {
+					inv = append(inv, h)
+				}
+			case "connect":
+				if cfg.Groups["kafka_connect"] == nil {
+					continue
+				}
+				for h := range cfg.Groups["kafka_connect"].Hosts {
+					inv = append(inv, h)
+				}
+			}
+		}
+	}
+	log.Debug("Inventory : " + strings.Join(inv, ","))
+	return strings.Join(inv, "\n"), nil
+}
+
 // Build the inventory of all Kafka clusters
-func buildInventory(fs billy.Filesystem) ([]string, error) {
+func buildClusterInventory(fs billy.Filesystem) ([]string, error) {
 	arr, err := fs.ReadDir("/")
 	if err != nil {
 		return nil, err
@@ -276,4 +354,14 @@ func max(a, b int) int {
 		return b
 	}
 	return a
+}
+
+func writeTofile(filename, line string) error {
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(line)
+	return err
 }

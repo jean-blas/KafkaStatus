@@ -21,6 +21,6 @@ func main() {
 }
 
 // TODO : check brokers load in terms of balance of partitions, etc.
-// TODO : check zookeeper
+// TODO : check zookeeper zookeeper_QuorumSize
 // TODO : check the partition size, etc. kafka-log-dirs.sh --bootstrap-server bktv0900.os.amadeus.net:9092 --describe --broker-list 0
-// TODO : get the equivalent of kafka-cluster-status
+// TODO : run all commands at once on a cluster
