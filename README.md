@@ -69,9 +69,11 @@ e.g. go run kstat.go --git_branch YOUR_BRANCH --git_login YOUR_LOGING --short he
 
   e.g. go run kstat.go --git-branch ERDING_DEV --git-login jimbert -c bkt28 inventory
 
+```
       --inventory-type string   Create the inventory for kafka, zookeeper or connect.  (default "kafka")
   -o, --outfile string          Output file name
       --stdin                   Write the inventory to stdin  (default true)
+```
 
 ### Global flags:
 
