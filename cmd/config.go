@@ -19,17 +19,15 @@ var configCmd = &cobra.Command{
 	Short: "Display the config (static and dynamic) for the given cluster",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		servers := brokername
-		if servers == "" {
-			servers, err = clusterToBootstrap(clustername)
-			logFatal(err)
-		}
-		result, err := config_cmd(servers)
+		servers, err := initServers()
 		logFatal(err)
-		fmt.Println("Config of", clustername)
-		conf := extractConf(result)
-		fmt.Println(config_toString(conf))
+		for _, s := range servers {
+			result, err := config_cmd(s.bootstrap)
+			logFatal(err)
+			fmt.Println("Config of", s.cluster)
+			conf := extractConf(result)
+			fmt.Println(config_toString(conf))
+		}
 	},
 }
 

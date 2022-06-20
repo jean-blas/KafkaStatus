@@ -20,35 +20,33 @@ var aclsCmd = &cobra.Command{
 	Short: "Display acls of all or subset topics of a cluster",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		servers := brokername
-		if servers == "" {
-			servers, err = clusterToBootstrap(clustername)
-			logFatal(err)
-		}
-		fmt.Println("Display acls of ", clustername)
-		if strings.TrimSpace(acls_topic) != "" {
-			topics := strings.Split(acls_topic, ",")
-			var wg sync.WaitGroup
-			for _, topic := range topics {
-				wg.Add(1)
-				go func(t string) {
-					result, err := acls_cmdWithTopic(servers, t)
-					if err != nil {
-						log.Error(err)
-					} else {
-						acls := extractAcls(result)
-						fmt.Println(acls)
-					}
-					wg.Done()
-				}(topic)
+		servers, err := initServers()
+		logFatal(err)
+		for _, s := range servers {
+			fmt.Println("Display acls of ", s.cluster)
+			if strings.TrimSpace(acls_topic) != "" {
+				topics := strings.Split(acls_topic, ",")
+				var wg sync.WaitGroup
+				for _, topic := range topics {
+					wg.Add(1)
+					go func(t string) {
+						result, err := acls_cmdWithTopic(s.bootstrap, t)
+						if err != nil {
+							log.Error(err)
+						} else {
+							acls := extractAcls(result)
+							fmt.Println(acls)
+						}
+						wg.Done()
+					}(topic)
+				}
+				wg.Wait()
+			} else {
+				result, err := acls_cmd(s.bootstrap)
+				logFatal(err)
+				acls := extractAcls(result)
+				fmt.Println(acls_toString(acls))
 			}
-			wg.Wait()
-		} else {
-			result, err := acls_cmd(servers)
-			logFatal(err)
-			acls := extractAcls(result)
-			fmt.Println(acls_toString(acls))
 		}
 	},
 }

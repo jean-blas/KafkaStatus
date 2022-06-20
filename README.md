@@ -87,6 +87,7 @@ These options are available for all commands, but may not be used in some comman
         --git_repo string     git repository to clone (default "https://rndwww.nce.amadeus.net/git/scm/kafka/ansible-configs.git")
     -h, --help                help for kstat
         --http-timeout int    Timeout used when sending a request (milliseconds) (default 2000)
+        --inv string          Input ansible-like inventory file
     -l, --log string          log level (e.g. trace, debug, info, warn, error, fatal) (default "warn")
     -s, --short               When available, display only a short version of the results
         --timeout int         Timeout used when checking the connection (milliseconds) (default 500)

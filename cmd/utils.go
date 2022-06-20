@@ -54,6 +54,45 @@ func buildInventoryFromGit(invType string) (string, error) {
 	return buildBrokerInventory(fs, invType)
 }
 
+//  Construct the struct of servers (clustername and bootstrap servers)
+func initServers() ([]SERVER, error) {
+	var servers []SERVER
+	var err error
+	if strings.TrimSpace(gitBranch) != "" { // Build the inventory from git branch
+		servers, err = buildServersFromGit()
+	} else if invFile != "" { // Read a ansible-like inventory file
+		servers, err = LoadInvFile()
+	} else {
+		servers, err = buildServers() // Build the inventory from the command line [-c cluster1,cluster2,...] or [-b fqdn:port]
+	}
+	log.Debug(servers)
+	return servers, err
+}
+
+func LoadInvFile() ([]SERVER, error) {
+	file, err := os.Open(invFile)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	cfg, err := aini.Parse(file)
+	if err != nil {
+		return nil, err
+	}
+	servers := make([]SERVER, 0)
+	for _, g := range cfg.Groups {
+		if g.Name == "all" || g.Name == "ungrouped" {
+			continue
+		}
+		inv := make([]string, 0)
+		for h := range g.Hosts {
+			inv = append(inv, h+":9092")
+		}
+		servers = append(servers, SERVER{cluster: g.Name, bootstrap: strings.Join(inv, ",")})
+	}
+	return servers, nil
+}
+
 // Construct the struct of servers (clustername and bootstrap servers) for each cluster from the git branch inventory
 func buildServersFromGit() ([]SERVER, error) {
 	servers := make([]SERVER, 0)
@@ -274,7 +313,7 @@ func buildBrokerInventory(fs billy.Filesystem, invType string) (string, error) {
 	if clustername == "" {
 		re = regexp.MustCompile(`b[k][p|t|g|c|u|x][0-9]{2}$`)
 	} else {
-		re = regexp.MustCompile(clustername + `$`)
+		re = regexp.MustCompile(`(` + strings.Join(strings.Split(clustername, ","), "|") + `)$`)
 	}
 	for _, a := range arr {
 		if re.MatchString(a.Name()) {

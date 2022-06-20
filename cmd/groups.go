@@ -25,8 +25,7 @@ If a group is passed (or several groups with comma separator), then describe, me
   are retrieved for the given group(s).`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		servers, err := buildServers() // Build the inventory from the command line [-c cluster1,cluster2,...]
-		log.Debug(servers)
+		servers, err := initServers()
 		logFatal(err)
 		if strings.TrimSpace(sGroup) == "" { // List all groups
 			group_list(servers)

@@ -29,13 +29,7 @@ var healthCmd = &cobra.Command{
 	e.g. go run kstat.go --git-branch ERDING_DEV --git-login jimbert --short --cluster bkt28 health `,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		var servers []SERVER
-		var err error
-		if strings.TrimSpace(gitBranch) != "" { // Build the inventory from git branch
-			servers, err = buildServersFromGit()
-		} else {
-			servers, err = buildServers() // Build the inventory from the command line [-c cluster1,cluster2,...]
-		}
+		servers, err := initServers()
 		logFatal(err)
 		checkServersHealth(servers)
 	},

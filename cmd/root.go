@@ -16,6 +16,7 @@ var logLevel string
 var gitRepo, gitBranch, gitLogin, gitPasswd string
 var short bool
 var timeout, httpTimeout int
+var invFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -45,6 +46,7 @@ func init() {
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.task.yaml)")
 	rootCmd.PersistentFlags().StringVarP(&clustername, "cluster", "c", "", "Cluster name (e.g. bku10)")
+	rootCmd.PersistentFlags().StringVarP(&invFile, "inv", "", "", "Input ansible-like inventory file ")
 	rootCmd.PersistentFlags().StringVarP(&brokername, "broker", "b", "", "Broker full name (e.g. bkuv1000.os.amadeus.net:9092)")
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log", "l", "warn", "log level (e.g. trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringVarP(&gitRepo, "git-repo", "", ansible_config, "git repository to clone")

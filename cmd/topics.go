@@ -20,8 +20,7 @@ var topicsCmd = &cobra.Command{
 	Short: "Display topic info of a cluster",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		servers, err := buildServers()
-		log.Debug(servers)
+		servers, err := initServers()
 		logFatal(err)
 
 		if strings.TrimSpace(topics_topic) != "" { // If topic defined display only these topics for all clusters
@@ -33,8 +32,9 @@ var topicsCmd = &cobra.Command{
 			getTopicsFromClusters(servers)
 		}
 		if short { // Display the topics properties for all clusters and exit
-			for _, t := range servers {
-				fmt.Println(strings.TrimSpace(t.topics))
+			for _, s := range servers {
+				fmt.Printf("\n%s:\n", s.cluster)
+				fmt.Println(strings.TrimSpace(s.topics))
 			}
 		} else { // Display the topics list with details for all clusters
 			displayTopicWithDetails(servers)
