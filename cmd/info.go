@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -138,8 +141,49 @@ func fillInfo(servers []SERVER, nodeMetrics, kafkaMetrics []string) {
 			fillBrokerMetrics(s, nodeMetrics, kafkaMetrics)
 			wg.Done()
 		}(&servers[i])
+
+		wg.Add(1)
+		go func(s *SERVER) {
+			tpcs, err := topics_cmdList(s.bootstrap)
+			if err != nil {
+				log.Error(s.cluster, err)
+			} else {
+				log.Debug(fmt.Sprintf("%s: topics = %s", s.cluster, tpcs))
+				s.topics = tpcs
+			}
+			wg.Done()
+		}(&servers[i])
+
+		wg.Add(1)
+		go func(s *SERVER) {
+			temp, err := info_logdirs(s.bootstrap)
+			if logErr(err) {
+				wg.Done()
+				return
+			}
+			logdirs := strings.Split(temp, "\n")[2]
+			var ld LOGDIRS
+			err = json.Unmarshal([]byte(logdirs), &ld)
+			if logErr(err) {
+				wg.Done()
+				return
+			}
+			s.logdirs = ld
+			wg.Done()
+		}(&servers[i])
 	}
 	wg.Wait()
+}
+
+func info_logdirs(broker string) (string, error) {
+	log.Debug("Run command : kafka-log-dirs.sh --bootstrap-server " + broker + " --describe")
+	ecmd := exec.Command("kafka-log-dirs.sh", "--bootstrap-server", broker, "--describe")
+	var out bytes.Buffer
+	ecmd.Stdout = &out
+	if err := ecmd.Run(); err != nil {
+		return "", err
+	}
+	return out.String(), nil
 }
 
 func computeLen(m []string) int {
@@ -180,17 +224,56 @@ func toGiga(metric string) float64 {
 	return value / GIGA
 }
 
+func numberOfTopics(s string) int {
+	if s == "" {
+		return 0
+	}
+	return len(strings.Split(s, "\n"))
+}
+
+func computeNPartitions(ld LOGDIRS) []int {
+	np := make([]int, len(ld.Brokers))
+	for i := range ld.Brokers {
+		np[i] = len(ld.Brokers[i].LogDirs[0].Partitions)
+	}
+	return np
+}
+
+func intJoin(a []int, sep string) string {
+	res := make([]string, len(a))
+	for i := range a {
+		res[i] = strconv.Itoa(a[i])
+	}
+	return strings.Join(res, sep)
+}
+
+func sum(ar []int) int {
+	s := 0
+	for _, a := range ar {
+		s += a
+	}
+	return s
+}
+
 func displayMetrics(servers []SERVER, nodeMetrics, kafkaMetrics []string) {
+	ntopics, ngiga, nparts := 0, 0., 0
 	for _, s := range servers {
+		nt := numberOfTopics(s.topics)
+		partitions := computeNPartitions(s.logdirs)
+		nbPartitions := sum(partitions)
+		ntopics += nt
+		nparts += nbPartitions
 		if short {
-			fmt.Printf("%s : ", s.cluster)
+			fmt.Printf("%s : %3d %4d[%16s]  ", s.cluster, nt, nbPartitions, intJoin(partitions, ","))
 			for _, bm := range s.brokermetrics {
 				kdata := computeKafkadata(bm.metrics)
-				fmt.Printf("%5.2f%%[%4.0fG] %5s  ", kdata, toGiga(bm.metrics["node_filesystem_size_bytes"].v), bm.metrics["kafka_app_info"].v)
+				ng := toGiga(bm.metrics["node_filesystem_size_bytes"].v)
+				ngiga += ng
+				fmt.Printf("%5.2f%%[%4.0fG] %5s  ", kdata, ng, bm.metrics["kafka_app_info"].v)
 			}
 			fmt.Printf("\n")
 		} else {
-			fmt.Println(s.cluster)
+			fmt.Printf("%s : %3d %4d[%16s]\n", s.cluster, nt, nbPartitions, intJoin(partitions, ","))
 			all := append(nodeMetrics, kafkaMetrics...)
 			maxL := computeLen(all)
 			for _, m := range all {
@@ -200,6 +283,12 @@ func displayMetrics(servers []SERVER, nodeMetrics, kafkaMetrics []string) {
 				}
 				fmt.Println(" ")
 			}
+			for _, bm := range s.brokermetrics {
+				ngiga += toGiga(bm.metrics["node_filesystem_size_bytes"].v)
+			}
 		}
+	}
+	if len(servers) > 1 {
+		fmt.Printf("Nb servers : %d, Nb of topics : %d [%d], disk total : %.0fG\n", len(servers), ntopics, nparts, ngiga)
 	}
 }

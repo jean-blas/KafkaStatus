@@ -23,6 +23,28 @@ import (
 )
 
 // **************** CLUSTER / BROKERS / TOPICS *****************************
+type PART struct {
+	Partition string
+	Size      int
+	OffsetLag int
+	IsFuture  bool
+}
+
+type LOGDS struct {
+	LogDir     string
+	Error      string `json:"-"`
+	Partitions []PART
+}
+
+type BROKER struct {
+	Broker  int
+	LogDirs []LOGDS
+}
+
+type LOGDIRS struct {
+	Version int
+	Brokers []BROKER
+}
 
 type GROUP struct {
 	name, state       string
@@ -44,6 +66,7 @@ type SERVER struct {
 	cluster, bootstrap, topics string
 	groups                     []GROUP
 	brokermetrics              []BROKERMETRICS // One BROKERMETRICS per broker
+	logdirs                    LOGDIRS
 }
 
 func buildInventoryFromGit(invType string) (string, error) {
@@ -108,7 +131,7 @@ func buildServersFromGit() ([]SERVER, error) {
 	if clustername == "" {
 		re = regexp.MustCompile(`b[k][p|t|g|c|u|x][0-9]{2}$`)
 	} else {
-		re = regexp.MustCompile(clustername + `$`)
+		re = regexp.MustCompile(`(` + strings.Join(strings.Split(clustername, ","), "|") + `)$`)
 	}
 	for _, a := range arr {
 		if re.MatchString(a.Name()) {
