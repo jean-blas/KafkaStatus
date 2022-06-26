@@ -10,13 +10,13 @@ This tool is aimed at gathering information from some Kafka clusters. Some advan
 
 ```
   acl         Display acls of all or subset topics of a cluster
-  completion  Generate the autocompletion script for the specified shell
   config      Display the config (static and dynamic) for the given cluster
   group       Check group info of a cluster
   health      Check health info of a cluster
   help        Help about any command
   info        Display some stats of the given cluster(s)
   inventory   Build a ansible-like inventory based on a git branch
+  partitions  Display the log dir info
   topic       Display topic info of a cluster
 ```
 
@@ -74,6 +74,12 @@ e.g. go run kstat.go --git_branch YOUR_BRANCH --git_login YOUR_LOGING --short he
   -o, --outfile string          Output file name
       --stdin                   Write the inventory to stdin  (default true)
 ```
+
+  * partitions
+
+  Pretty display with the --short|-s option, else raw display
+
+    --broker-list string   The list of brokers to be queried in the form 0,1,2. All brokers in the cluster will be queried if no broker list is specified
 
 ### Global flags:
 

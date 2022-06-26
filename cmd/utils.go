@@ -129,7 +129,7 @@ func buildServersFromGit() ([]SERVER, error) {
 	}
 	var re *regexp.Regexp
 	if clustername == "" {
-		re = regexp.MustCompile(`b[k][p|t|g|c|u|x][0-9]{2}$`)
+		re = regexp.MustCompile(`b[k][p|t|g|c|u|x|a][0-9]{2}$`)
 	} else {
 		re = regexp.MustCompile(`(` + strings.Join(strings.Split(clustername, ","), "|") + `)$`)
 	}
@@ -205,7 +205,7 @@ func clusterToBootstrap(clustername string) (string, error) {
 
 func toCluster(brokers string) (string, error) {
 	broker := strings.Split(brokers, ",")
-	re := regexp.MustCompile(`b[k|z][p|t|g|c|u|x]v[0-9]{4}\.os\.amadeus\.net:[0-9]{4}`)
+	re := regexp.MustCompile(`b[k|z][p|t|g|c|u|x|a]v[0-9]{4}\.os\.amadeus\.net:[0-9]{4}`)
 	if re.MatchString(broker[0]) {
 		b := broker[0]
 		return b[:3] + b[4:6], nil
@@ -334,7 +334,7 @@ func buildBrokerInventory(fs billy.Filesystem, invType string) (string, error) {
 	inv := make([]string, 0)
 	var re *regexp.Regexp
 	if clustername == "" {
-		re = regexp.MustCompile(`b[k][p|t|g|c|u|x][0-9]{2}$`)
+		re = regexp.MustCompile(`b[k][p|t|g|c|u|x|a][0-9]{2}$`)
 	} else {
 		re = regexp.MustCompile(`(` + strings.Join(strings.Split(clustername, ","), "|") + `)$`)
 	}
@@ -381,7 +381,7 @@ func buildClusterInventory(fs billy.Filesystem) ([]string, error) {
 	}
 	inv := make([]string, 0)
 	for _, a := range arr {
-		re := regexp.MustCompile(`b[k][p|t|g|c|u|x][0-9]{2}`)
+		re := regexp.MustCompile(`b[k][p|t|g|c|u|x|a][0-9]{2}`)
 		if re.MatchString(a.Name()) {
 			inv = append(inv, a.Name())
 		}

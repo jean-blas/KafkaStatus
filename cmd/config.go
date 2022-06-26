@@ -23,7 +23,9 @@ var configCmd = &cobra.Command{
 		logFatal(err)
 		for _, s := range servers {
 			result, err := config_cmd(s.bootstrap)
-			logFatal(err)
+			if logErr(err) {
+				continue
+			}
 			fmt.Println("Config of", s.cluster)
 			conf := extractConf(result)
 			fmt.Println(config_toString(conf))
