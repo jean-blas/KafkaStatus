@@ -9,15 +9,19 @@ This tool is aimed at gathering information from some Kafka clusters. Some advan
 ### Available Commands:
 
 ```
-  acl         Display acls of all or subset topics of a cluster
-  config      Display the config (static and dynamic) for the given cluster
-  group       Check group info of a cluster
-  health      Check health info of a cluster
+  acl         [ERDING] Display acls of all or subset topics of a cluster
+  config      [ERDING] Display the config (static and dynamic) for the given cluster
+  group       [ERDING] Check group info of a cluster
+  health      [ERDING] Check health info of a cluster
   help        Help about any command
-  info        Display some stats of the given cluster(s)
-  inventory   Build a ansible-like inventory based on a git branch
-  partitions  Display the log dir info
-  topic       Display topic info of a cluster
+  info        [ERDING] Display some stats of the given cluster(s)
+  inventory   [ERDING] Build a ansible-like inventory based on a git branch
+  kgroup      [PaaS] Display groups info inside a PaaS
+  kmm2        [PaaS] Display MirrorMaker2 info inside a PaaS
+  ktopic      [PaaS] Display topics info inside a PaaS
+  namespace   [PaaS] Display namespace info
+  partition   [ERDING] Display the log dir info
+  topic       [ERDING] Display topic info of a cluster
 ```
 
 ### Commands options
@@ -25,8 +29,6 @@ This tool is aimed at gathering information from some Kafka clusters. Some advan
   * acl
 
 Display acls of all or subset topics of a cluster
-
-    -t, --topic string   Topic names using comma as separator (e.g. topic1,topic2)
 
   * config
 
@@ -40,15 +42,12 @@ Display the config (static and dynamic) for the given cluster
 Display topic info of a cluster
 
     -d, --describe       Show the details of partitions
-    -t, --topic string   Topic names using comma as separator (e.g. topic1,topic2)
 
   * group
 
 By default, get the list of groups (option --short) or the list of groups along with their state (default, no option) of the given clusters (clusters are comma separated).
 
 If a group is passed (or several groups with comma separator), then describe, members and state are retrieved for the given group(s).
-
-    -g, --group string   Groups to describe (separator is comma for several groups)
 
   * health
 
@@ -75,11 +74,30 @@ e.g. go run kstat.go --git_branch YOUR_BRANCH --git_login YOUR_LOGING --short he
       --stdin                   Write the inventory to stdin  (default true)
 ```
 
-  * partitions
+  * partition
 
   Pretty display with the --short|-s option, else raw display
 
     --broker-list string   The list of brokers to be queried in the form 0,1,2. All brokers in the cluster will be queried if no broker list is specified
+
+
+### PaaS
+
+  * kgroup
+
+  [PaaS] Display groups info inside a PaaS
+
+  * kmm2
+
+  [PaaS] Display MirrorMaker2 info inside a PaaS
+
+  * ktopic
+
+  [PaaS] Display topics info inside a PaaS
+
+  * namespace
+
+  [PaaS] Display namespace info
 
 ### Global flags:
 
@@ -87,13 +105,17 @@ These options are available for all commands, but may not be used in some comman
 
     -b, --broker string       Broker full name (e.g. bkuv1000.os.amadeus.net:9092)
     -c, --cluster string      Cluster name (e.g. bku10)
-        --git_branch string   git branch to checkout (e.g. ERDING_TL1)
-    -u, --git_login string    git login
-    -w, --git_passwd string   git password
-        --git_repo string     git repository to clone (default "https://rndwww.nce.amadeus.net/git/scm/kafka/ansible-configs.git")
+        --git-branch string   git branch to checkout (e.g. ERDING_TL1)
+        --git-repo string     git repository to clone (default "https://rndwww.nce.amadeus.net/git/scm/kafka/ansible-configs.git")
+    -g, --group string        Groups to describe (separator is comma for several groups)
     -h, --help                help for kstat
         --http-timeout int    Timeout used when sending a request (milliseconds) (default 2000)
         --inv string          Input ansible-like inventory file
+        --kconfig string      Absolute path to the kubeconfig file
     -l, --log string          log level (e.g. trace, debug, info, warn, error, fatal) (default "warn")
+    -u, --login string        login
+        --ns string           Namespace names using comma as separator (e.g. namespace1,namespace2)
+    -w, --passwd string       password
     -s, --short               When available, display only a short version of the results
         --timeout int         Timeout used when checking the connection (milliseconds) (default 500)
+    -t, --topic string        Topic names using comma as separator (e.g. topic1,topic2)
