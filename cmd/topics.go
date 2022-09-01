@@ -17,21 +17,21 @@ import (
 // Represent the topics status command
 var topicsCmd = &cobra.Command{
 	Use:   "topic",
-	Short: "Display topic info of a cluster",
+	Short: "[ERDING] Display topic info of a cluster",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		servers, err := initServers()
 		logFatal(err)
 
-		if strings.TrimSpace(topics_topic) != "" { // If topic defined display only these topics for all clusters
-			tpcs := strings.ReplaceAll(strings.TrimSpace(topics_topic), ",", "\n") //input like topic1,topic2,topic3
+		if strings.TrimSpace(topics) != "" { // If topic defined display only these topics for all clusters
+			tpcs := strings.ReplaceAll(strings.TrimSpace(topics), ",", "\n") //input like topic1,topic2,topic3
 			for i := range servers {
 				servers[i].topics = tpcs
 			}
 		} else { // Look for all topics in all clusters
 			getTopicsFromClusters(servers)
 		}
-		if short { // Display the topics properties for all clusters and exit
+		if short { // Display the topics for all clusters and exit
 			for _, s := range servers {
 				fmt.Printf("\n%s:\n", s.cluster)
 				fmt.Println(strings.TrimSpace(s.topics))
@@ -42,13 +42,11 @@ var topicsCmd = &cobra.Command{
 	},
 }
 
-var topics_topic string
 var topics_describe bool
 
 func init() {
 	rootCmd.AddCommand(topicsCmd)
 	// Cobra supports local flags which will only run when this command is called directly, e.g.:
-	topicsCmd.Flags().StringVarP(&topics_topic, "topic", "t", "", "Topic names using comma as separator (e.g. topic1,topic2)")
 	topicsCmd.Flags().BoolVarP(&topics_describe, "describe", "d", false, "Show the details of partitions")
 }
 
@@ -68,7 +66,7 @@ func displayTopicWithDetails(servers []SERVER) {
 				log.Error("Error:", s.cluster, ":", err)
 			} else {
 				sortTopicsDetails(&topicsDetailed)
-				fmt.Println(strings.Join([]string{s.cluster, toString(topicsDetailed)}, "\n"))
+				fmt.Println(strings.Join([]string{s.cluster, toString(topicsDetailed, nil)}, "\n"))
 			}
 			wg.Done()
 		}(s)
@@ -109,19 +107,24 @@ func (t topicDetails) String() string {
 	return fmt.Sprintf("%s : p=%d  r=%d  c=%s\n", t.name, t.nbOfPartitions, t.replication, t.config)
 }
 
-func toString(at []topicDetails) string {
+// Print the topics with details, and only the ones inside "wanted" if not nil
+func toString(at []topicDetails, wanted []string) string {
 	maxLName := -1
 	for _, t := range at {
-		if len(t.name) > maxLName {
-			maxLName = len(t.name)
+		if wanted == nil || inArray(wanted, t.name) {
+			if len(t.name) > maxLName {
+				maxLName = len(t.name)
+			}
 		}
 	}
 	s := ""
 	for _, t := range at {
-		s += fmt.Sprintf("%-*s : p=%d  r=%d  c=%s\n", maxLName, t.name, t.nbOfPartitions, t.replication, t.config)
-		if topics_describe {
-			s += partitionsToString(t.partitions)
-			s += "\n"
+		if wanted == nil || inArray(wanted, t.name) {
+			s += fmt.Sprintf("  %-*s : p=%2d  r=%d  c=%s\n", maxLName, t.name, t.nbOfPartitions, t.replication, t.config)
+			if topics_describe {
+				s += partitionsToString(t.partitions)
+				s += "\n"
+			}
 		}
 	}
 	return s

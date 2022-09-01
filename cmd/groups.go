@@ -17,7 +17,7 @@ import (
 // Represent the group status command
 var groupCmd = &cobra.Command{
 	Use:   "group",
-	Short: "Check group info of a cluster",
+	Short: "[ERDING] Check group info of a cluster",
 	Long: `By default, get the list of groups (option --short)
   or the list of groups along with their state (default, no option)
   of the given clusters (clusters are comma separated).
@@ -27,7 +27,7 @@ If a group is passed (or several groups with comma separator), then describe, me
 	Run: func(cmd *cobra.Command, args []string) {
 		servers, err := initServers()
 		logFatal(err)
-		if strings.TrimSpace(sGroup) == "" { // List all groups
+		if strings.TrimSpace(groups) == "" { // List all groups
 			group_list(servers)
 			if !short {
 				group_state(servers)
@@ -35,7 +35,7 @@ If a group is passed (or several groups with comma separator), then describe, me
 			printGroupsListAllServers(servers)
 		} else { // Describe/members the given group
 			for i := range servers {
-				for _, g := range strings.Split(sGroup, ",") {
+				for _, g := range strings.Split(groups, ",") {
 					servers[i].groups = append(servers[i].groups, GROUP{name: g})
 				}
 			}
@@ -53,12 +53,9 @@ const (
 	OPT_GROUP_MEMBERS  = "--members"
 )
 
-var sGroup string
-
 func init() {
 	rootCmd.AddCommand(groupCmd)
 	// Cobra supports local flags which will only run when this command is called directly, e.g.:
-	groupCmd.Flags().StringVarP(&sGroup, "group", "g", "", "Groups to describe (separator is comma for several groups)")
 }
 
 func group_describe(servers []SERVER) {

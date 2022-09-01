@@ -11,7 +11,7 @@ import (
 // Represent the inventory command
 var inventoryCmd = &cobra.Command{
 	Use:   "inventory",
-	Short: "Build a ansible-like inventory based on a git branch",
+	Short: "[ERDING] Build a ansible-like inventory based on a git branch",
 	Long: `Used together with the -c|--cluster option, restrains the inventory to the given cluster
 	e.g. go run kstat.go --git-branch ERDING_DEV --git-login jimbert -c bkt28 inventory `,
 	Run: func(cmd *cobra.Command, args []string) {

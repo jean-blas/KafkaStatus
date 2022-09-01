@@ -17,7 +17,7 @@ import (
 // Represent the acls status command
 var aclsCmd = &cobra.Command{
 	Use:   "acl",
-	Short: "Display acls of all or subset topics of a cluster",
+	Short: "[ERDING] Display acls of all or subset topics of a cluster",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		servers, err := initServers()

@@ -1,0 +1,331 @@
+{Object:map[apiVersion:kafka.strimzi.io/v1beta2 kind:KafkaMirrorMaker2 metadata:map[annotations:map[kubectl.kubernetes.io/last-applied-configuration: {
+                    "apiVersion": "kafka.strimzi.io/v1alpha1",
+                    "kind": "KafkaMirrorMaker2",
+                    "metadata": {
+                        "annotations": {},
+                        "labels": {
+                            "acs.amadeus.com/securityZone": "app",
+                            "prometheus.io/scrape-kafka": "true"
+                        },
+                        "name": "bkts28-nld7-mm2-tls",
+                        "namespace": "kue-kafka"
+                    },
+                    "spec": {
+                        "clusters": [
+                            {
+                                "alias": "bkts28",
+                                "bootstrapServers": "bkts28-kafka-bootstrap:9093",
+                                "config": {
+                                    "config.storage.replication.factor": 3,
+                                    "offset.storage.replication.factor": 3,
+                                    "status.storage.replication.factor": 3
+                                },
+                                "tls": {
+                                    "trustedCertificates": [
+                                        {
+                                            "certificate": "ca.crt",
+                                            "secretName": "bkts28-cluster-ca-cert"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "alias": "bkt28",
+                                "authentication": {
+                                    "certificateAndKey": {
+                                        "certificate": "crt",
+                                        "key": "key",
+                                        "secretName": "bkt28-mm2-client"
+                                    },
+                                    "type": "tls"
+                                },
+                                "bootstrapServers": "bktv2800.os.amadeus.net:9094,bktv2801.os.amadeus.net:9094,bktv2802.os.amadeus.net:9094,bktv2803.os.amadeus.net:9094,bktv2804.os.amadeus.net:9094,bktv2805.os.amadeus.net:9094",
+                                "tls": {
+                                    "trustedCertificates": [
+                                        {
+                                            "certificate": "ca.crt",
+                                            "secretName": "bkt28-cluster-ca-crt"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "alias": "bkts31",
+                                "bootstrapServers": "bkts31-kafka-bootstrap-kue-kafka.app.nld8.paas.westeurope.tstcur.az.amadeus.net:443",
+                                "tls": {
+                                    "trustedCertificates": [
+                                        {
+                                            "certificate": "ca.crt",
+                                            "secretName": "bkts31-cluster-ca-cert"
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "alias": "bkto01",
+                                "authentication": {
+                                    "certificateAndKey": {
+                                        "certificate": "crt",
+                                        "key": "key",
+                                        "secretName": "bkt28-mm2-client"
+                                    },
+                                    "type": "tls"
+                                },
+                                "bootstrapServers": "10.128.86.255:19194,10.128.85.103:19194,10.128.86.220:19194",
+                                "tls": {
+                                    "trustedCertificates": [
+                                        {
+                                            "certificate": "ca.crt",
+                                            "secretName": "bkt28-cluster-ca-crt"
+                                        }
+                                    ]
+                                }
+                            }
+                        ],
+                        "connectCluster": "bkts28",
+                        "jvmOptions": {
+                            "-Xms": "1g",
+                            "-Xmx": "1g"
+                        },
+                        "livenessProbe": {
+                            "initialDelaySeconds": 15,
+                            "timeoutSeconds": 5
+                        },
+                        "logging": {
+                            "loggers": {
+                                "connect.root.logger.level": "INFO"
+                            },
+                            "type": "inline"
+                        },
+                        "metricsConfig": {
+                            "type": "jmxPrometheusExporter",
+                            "valueFrom": {
+                                "configMapKeyRef": {
+                                    "key": "bkts28-nld7-mm2-tls-jmx-exporter-configuration.yaml",
+                                    "name": "bkts28-nld7-mm2-tls-jmx-exporter-configuration"
+                                }
+                            }
+                        },
+                        "mirrors": [
+                            {
+                                "checkpointConnector": {
+                                    "config": {
+                                        "checkpoints.topic.replication.factor": 3
+                                    }
+                                },
+                                "groupsPattern": "",
+                                "heartbeatConnector": {
+                                    "config": {
+                                        "heartbeats.topic.replication.factor": 3
+                                    }
+                                },
+                                "sourceCluster": "bkt28",
+                                "sourceConnector": {
+                                    "config": {
+                                        "offset-syncs.topic.replication.factor": 3,
+                                        "replication.factor": 3,
+                                        "replication.policy.separator": ".",
+                                        "sync.topic.acls.enabled": "false"
+                                    }
+                                },
+                                "targetCluster": "bkts28",
+                                "topicsPattern": "mirrorTest"
+                            },
+                            {
+                                "checkpointConnector": {
+                                    "config": {
+                                        "checkpoints.topic.replication.factor": 3,
+                                        "emit.checkpoints.enabled": "true",
+                                        "emit.checkpoints.interval.seconds": 5,
+                                        "refresh.groups.enabled": "true",
+                                        "refresh.groups.interval.seconds": 10,
+                                        "sync.group.offsets.enabled": "true",
+                                        "sync.group.offsets.interval.seconds": 5,
+                                        "tasks.max": 2
+                                    }
+                                },
+                                "groupsPattern": ".*",
+                                "sourceCluster": "bkts31",
+                                "sourceConnector": {
+                                    "config": {
+                                        "offset-syncs.topic.replication.factor": 3,
+                                        "replication.factor": 3,
+                                        "replication.policy.separator": ".",
+                                        "sync.topic.acls.enabled": "false",
+                                        "tasks.max": 2
+                                    }
+                                },
+                                "targetCluster": "bkts28",
+                                "topicsPattern": ".*test-switch"
+                            },
+                            {
+                                "sourceCluster": "bkto01",
+                                "sourceConnector": {
+                                    "config": {
+                                        "offset-syncs.topic.replication.factor": 3,
+                                        "replication.factor": 3,
+                                        "replication.policy.separator": ".",
+                                        "sync.topic.acls.enabled": "false",
+                                        "tasks.max": 2
+                                    }
+                                },
+                                "targetCluster": "bkts28",
+                                "topicsPattern": "^INT.*,^UAT.*,^PIT.*,^MGT.*,^BTPRD.*"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "initialDelaySeconds": 15,
+                            "timeoutSeconds": 5
+                        },
+                        "replicas": 3,
+                        "resources": {
+                            "limits": {
+                                "cpu": "2",
+                                "memory": "2Gi"
+                            },
+                            "requests": {
+                                "cpu": "1",
+                                "memory": "1Gi"
+                            }
+                        },
+                        "template": {
+                            "pod": {
+                                "affinity": {
+                                    "podAntiAffinity": {
+                                        "requiredDuringSchedulingIgnoredDuringExecution": [
+                                            {
+                                                "labelSelector": null,
+                                                "matchExpressions": [
+                                                    {
+                                                        "key": "app.kubernetes.io/instance",
+                                                        "operator": "In",
+                                                        "values": [
+                                                            "bkts28-nld7-mm2-tls"
+                                                        ]
+                                                    }
+                                                ],
+                                                "topologyKey": "kubernetes.io/hostname"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "metadata": {
+                                    "annotations": {
+                                        "acs.amadeus.com/environment": "TST",
+                                        "acs.amadeus.com/first-line-support": "OCKAFKA",
+                                        "acs.amadeus.com/operational-owner": "OCKAFKA",
+                                        "acs.amadeus.com/owner": "TEC-TPE-PSV-DMB-BIP-KUE",
+                                        "acs.amadeus.com/securityZone": "app",
+                                        "acs.amadeus.com/service-id": "2d2bb010-1480-11ec-ad3e-0050560c4716",
+                                        "cmdb.amadeus.net/operated-by": "OCKAFKA",
+                                        "paas.amadeus.net/chorus-path": "TEC-TPE-PSV-DMB-BIP-KUE",
+                                        "paas.amadeus.net/winaproachgroup": "OCKAFKA"
+                                    }
+                                },
+                                "topologySpreadConstraints": [
+                                    {
+                                        "labelSelector": {
+                                            "matchLabels": {
+                                                "app.kubernetes.io/instance": "bkts28-nld7-mm2-tls"
+                                            }
+                                        },
+                                        "maxSkew": 1,
+                                        "topologyKey": "topology.kubernetes.io/zone",
+                                        "whenUnsatisfiable": "ScheduleAnyway"
+                                    }
+                                ]
+                            }
+                        },
+                        "version": "2.7.1"
+                    }
+                }
+            ] creationTimestamp: 2021-12-22T08: 53: 55Z generation: 20 labels:map[acs.amadeus.com/securityZone:app prometheus.io/scrape-kafka: true
+            ] name:bkts28-nld7-mm2-tls namespace:kue-kafka resourceVersion: 3049287520 uid:f94d3a47-76f9-487a-a578-43d0f84b1acc
+        ] spec:map[clusters: [map[alias:bkts28 bootstrapServers:bkts28-kafka-bootstrap: 9093 config:map[config.storage.replication.factor: 3 offset.storage.replication.factor: 3 status.storage.replication.factor: 3
+                    ] tls:map[trustedCertificates: [map[certificate:ca.crt secretName:bkts28-cluster-ca-cert
+                            ]
+                        ]
+                    ]
+                ] map[alias:bkt28 authentication:map[certificateAndKey:map[certificate:crt key:key secretName:bkt28-mm2-client
+                        ] type:tls
+                    ] bootstrapServers:bktv2800.os.amadeus.net: 9094,bktv2801.os.amadeus.net: 9094,bktv2802.os.amadeus.net: 9094,bktv2803.os.amadeus.net: 9094,bktv2804.os.amadeus.net: 9094,bktv2805.os.amadeus.net: 9094 tls:map[trustedCertificates: [map[certificate:ca.crt secretName:bkt28-cluster-ca-crt
+                            ]
+                        ]
+                    ]
+                ] map[alias:bkts31 bootstrapServers:bkts31-kafka-bootstrap-kue-kafka.app.nld8.paas.westeurope.tstcur.az.amadeus.net: 443 tls:map[trustedCertificates: [map[certificate:ca.crt secretName:bkts31-cluster-ca-cert
+                            ]
+                        ]
+                    ]
+                ] map[alias:bkto01 authentication:map[certificateAndKey:map[certificate:crt key:key secretName:bkt28-mm2-client
+                        ] type:tls
+                    ] bootstrapServers: 10.128.86.255: 19194,
+                    10.128.85.103: 19194,
+                    10.128.86.220: 19194 tls:map[trustedCertificates: [map[certificate:ca.crt secretName:bkt28-cluster-ca-crt
+                            ]
+                        ]
+                    ]
+                ]
+            ] connectCluster:bkts28 jvmOptions:map[-Xms: 1g -Xmx: 1g
+            ] livenessProbe:map[] logging:map[loggers:map[connect.root.logger.level:INFO
+                ] type:inline
+            ] metricsConfig:map[type:jmxPrometheusExporter valueFrom:map[configMapKeyRef:map[key:bkts28-nld7-mm2-tls-jmx-exporter-configuration.yaml name:bkts28-nld7-mm2-tls-jmx-exporter-configuration
+                    ]
+                ]
+            ] mirrors: [map[checkpointConnector:map[config:map[checkpoints.topic.replication.factor: 3
+                        ]
+                    ] groupsPattern: heartbeatConnector:map[config:map[heartbeats.topic.replication.factor: 3
+                        ]
+                    ] sourceCluster:bkt28 sourceConnector:map[config:map[offset-syncs.topic.replication.factor: 3 replication.factor: 3 replication.policy.separator:. sync.topic.acls.enabled: false
+                        ]
+                    ] targetCluster:bkts28 topicsPattern:mirrorTest
+                ] map[checkpointConnector:map[config:map[checkpoints.topic.replication.factor: 3 emit.checkpoints.enabled: true emit.checkpoints.interval.seconds: 5 refresh.groups.enabled: true refresh.groups.interval.seconds: 10 sync.group.offsets.enabled: true sync.group.offsets.interval.seconds: 5 tasks.max: 2
+                        ]
+                    ] groupsPattern:.* sourceCluster:bkts31 sourceConnector:map[config:map[offset-syncs.topic.replication.factor: 3 replication.factor: 3 replication.policy.separator:. sync.topic.acls.enabled: false tasks.max: 2
+                        ]
+                    ] targetCluster:bkts28 topicsPattern:.*test-switch
+                ] map[sourceCluster:bkto01 sourceConnector:map[config:map[offset-syncs.topic.replication.factor: 3 replication.factor: 3 replication.policy.separator:. sync.topic.acls.enabled: false tasks.max: 2
+                        ]
+                    ] targetCluster:bkts28 topicsPattern:^INT.*,^UAT.*,^PIT.*,^MGT.*,^BTPRD.*
+                ]
+            ] readinessProbe:map[] replicas: 3 resources:map[limits:map[cpu: 2 memory: 2Gi
+                ] requests:map[cpu: 1 memory: 1Gi
+                ]
+            ] template:map[pod:map[affinity:map[podAntiAffinity:map[requiredDuringSchedulingIgnoredDuringExecution: [map[matchExpressions: [map[key:app.kubernetes.io/instance operator:In values: [bkts28-nld7-mm2-tls
+                                            ]
+                                        ]
+                                    ] topologyKey:kubernetes.io/hostname
+                                ]
+                            ]
+                        ]
+                    ] metadata:map[annotations:map[acs.amadeus.com/environment:TST acs.amadeus.com/first-line-support:OCKAFKA acs.amadeus.com/operational-owner:OCKAFKA acs.amadeus.com/owner:TEC-TPE-PSV-DMB-BIP-KUE acs.amadeus.com/securityZone:app acs.amadeus.com/service-id: 2d2bb010-1480-11ec-ad3e-0050560c4716 cmdb.amadeus.net/operated-by:OCKAFKA paas.amadeus.net/chorus-path:TEC-TPE-PSV-DMB-BIP-KUE paas.amadeus.net/winaproachgroup:OCKAFKA
+                        ]
+                    ] topologySpreadConstraints: [map[labelSelector:map[matchLabels:map[app.kubernetes.io/instance:bkts28-nld7-mm2-tls
+                                ]
+                            ] maxSkew: 1 topologyKey:topology.kubernetes.io/zone whenUnsatisfiable:ScheduleAnyway
+                        ]
+                    ]
+                ]
+            ] version: 2.7.1
+        ] status:map[conditions: [map[lastTransitionTime: 2022-08-31T06: 27: 22.128499Z status:True type:Ready
+                ]
+            ] connectors: [map[connector:map[state:RUNNING worker_id: 10.225.119.152: 8083
+                    ] name:bkt28->bkts28.MirrorCheckpointConnector tasks: [] type:source
+                ] map[connector:map[state:RUNNING worker_id: 10.225.182.187: 8083
+                    ] name:bkt28->bkts28.MirrorHeartbeatConnector tasks: [map[id: 0 state:RUNNING worker_id: 10.225.119.152: 8083
+                        ]
+                    ] type:source
+                ] map[connector:map[state:RUNNING worker_id: 10.225.166.6: 8083
+                    ] name:bkt28->bkts28.MirrorSourceConnector tasks: [map[id: 0 state:RUNNING worker_id: 10.225.182.187: 8083
+                        ]
+                    ] type:source
+                ] map[connector:map[state:RUNNING worker_id: 10.225.119.152: 8083
+                    ] name:bkto01->bkts28.MirrorSourceConnector tasks: [] type:source
+                ] map[connector:map[state:RUNNING worker_id: 10.225.182.187: 8083
+                    ] name:bkts31->bkts28.MirrorCheckpointConnector tasks: [] type:source
+                ] map[connector:map[state:RUNNING worker_id: 10.225.166.6: 8083
+                    ] name:bkts31->bkts28.MirrorSourceConnector tasks: [map[id: 0 state:RUNNING worker_id: 10.225.166.6: 8083
+                        ] map[id: 1 state:RUNNING worker_id: 10.225.166.6: 8083
+                        ]
+                    ] type:source
+                ]
+            ] labelSelector:strimzi.io/cluster=bkts28-nld7-mm2-tls,strimzi.io/name=bkts28-nld7-mm2-tls-mirrormaker2,strimzi.io/kind=KafkaMirrorMaker2 observedGeneration: 20 replicas: 3 url:http: //bkts28-nld7-mm2-tls-mirrormaker2-api.kue-kafka.svc:8083]]}

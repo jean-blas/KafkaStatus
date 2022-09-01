@@ -21,7 +21,7 @@ const (
 // Represent the health status command
 var healthCmd = &cobra.Command{
 	Use:   "health",
-	Short: "Check health info of a cluster",
+	Short: "[ERDING] Check health info of a cluster",
 	Long: `Used together with git, check the health of all clusters that are in the branch repository (e.g. ERDING_DEV)
 	Note : if no option is selected (like --urp or --umisr), then all options will be checked.
 	e.g. go run kstat.go --git-branch ERDING_DEV --git-login jimbert --short health

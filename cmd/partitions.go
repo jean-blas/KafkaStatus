@@ -17,8 +17,8 @@ import (
 
 // Represent the config status command
 var partitionsCmd = &cobra.Command{
-	Use:   "partitions",
-	Short: "Display the log dir info",
+	Use:   "partition",
+	Short: "[ERDING] Display the log dir info",
 	Long:  `Pretty display with the --short|-s option, else raw display`,
 
 	Run: func(cmd *cobra.Command, args []string) {

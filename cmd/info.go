@@ -20,7 +20,7 @@ import (
 // Represent the config status command
 var infoCmd = &cobra.Command{
 	Use:   "info",
-	Short: "Display some stats of the given cluster(s)",
+	Short: "[ERDING] Display some stats of the given cluster(s)",
 	Long: `Used together with git, display some info of all clusters that are in the branch repository (e.g. ERDING_DEV)
 	Note : use the --http-timeout option to increase the timeout.
 	e.g. go run kstat.go --git-branch ERDING_DEV --git-login jimbert --short info `,

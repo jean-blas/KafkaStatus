@@ -11,12 +11,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile, clustername, brokername string
+var cfgFile, clustername, brokername, topics, groups string
 var logLevel string
-var gitRepo, gitBranch, gitLogin, gitPasswd string
+var gitRepo, gitBranch, login, passwd string
 var short bool
 var timeout, httpTimeout int
 var invFile string
+var kubeconfig, namespace string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -51,11 +52,16 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log", "l", "warn", "log level (e.g. trace, debug, info, warn, error, fatal)")
 	rootCmd.PersistentFlags().StringVarP(&gitRepo, "git-repo", "", ansible_config, "git repository to clone")
 	rootCmd.PersistentFlags().StringVarP(&gitBranch, "git-branch", "", "", "git branch to checkout (e.g. ERDING_TL1)")
-	rootCmd.PersistentFlags().StringVarP(&gitLogin, "git-login", "u", "", "git login")
-	rootCmd.PersistentFlags().StringVarP(&gitPasswd, "git-passwd", "w", "", "git password")
+	rootCmd.PersistentFlags().StringVarP(&login, "login", "u", "", "login")
+	rootCmd.PersistentFlags().StringVarP(&passwd, "passwd", "w", "", "password")
 	rootCmd.PersistentFlags().BoolVarP(&short, "short", "s", false, "When available, display only a short version of the results")
 	rootCmd.PersistentFlags().IntVarP(&timeout, "timeout", "", 500, "Timeout used when checking the connection (milliseconds)")
 	rootCmd.PersistentFlags().IntVarP(&httpTimeout, "http-timeout", "", 2000, "Timeout used when sending a request (milliseconds)")
+
+	rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kconfig", "", "", "Absolute path to the kubeconfig file")
+	rootCmd.PersistentFlags().StringVarP(&namespace, "ns", "", "", "Namespace names using comma as separator (e.g. namespace1,namespace2)")
+	rootCmd.PersistentFlags().StringVarP(&topics, "topic", "t", "", "Topic names using comma as separator (e.g. topic1,topic2)")
+	rootCmd.PersistentFlags().StringVarP(&groups, "group", "g", "", "Groups to describe (separator is comma for several groups)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

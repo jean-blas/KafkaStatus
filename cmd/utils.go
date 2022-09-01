@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -279,27 +280,28 @@ const (
 
 var branchs = [...]string{"ERDING_DEV", "ERDING_PRD", "ERDING_TL1", "ERDING_TL2", "ERDING_DES", "ERDING_STG"}
 
-func askCredentials() {
-	if strings.TrimSpace(gitLogin) == "" {
-		fmt.Println("Enter you git login:")
-		fmt.Scanln(&gitLogin)
+// Ask for credentials for git or paas
+func askCredentials(paas string) {
+	if strings.TrimSpace(login) == "" {
+		fmt.Printf("Enter your %s login:\n", paas)
+		fmt.Scanln(&login)
 	}
-	if strings.TrimSpace(gitPasswd) == "" {
-		fmt.Println("Enter you git password:")
+	if strings.TrimSpace(passwd) == "" {
+		fmt.Printf("Enter your %s password:\n", paas)
 		bytepw, err := term.ReadPassword(int(syscall.Stdin))
 		logFatal(err)
-		gitPasswd = string(bytepw)
+		passwd = string(bytepw)
 	}
 }
 
 func cloneInMemory(branch string) (billy.Filesystem, error) {
-	askCredentials()
+	askCredentials("git")
 	fs := memfs.New()
 	log.Debug("Cloning " + gitRepo + " : " + branch)
 	_, err := git.Clone(memory.NewStorage(), fs, &git.CloneOptions{
 		Auth: &http.BasicAuth{
-			Username: gitLogin,
-			Password: gitPasswd,
+			Username: login,
+			Password: passwd,
 		},
 		URL:           gitRepo,
 		ReferenceName: plumbing.NewBranchReferenceName(branch),
@@ -426,4 +428,24 @@ func writeTofile(filename, line string) error {
 	defer f.Close()
 	_, err = f.WriteString(line)
 	return err
+}
+
+// Return the keys of the map sorted (not the map itself)
+func sortMapKeys(m map[string][]string) []string {
+	keys := make([]string, 0)
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// Return true if v is found in elems
+func inArray[T comparable](elems []T, v T) bool {
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
