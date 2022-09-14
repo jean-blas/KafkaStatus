@@ -65,9 +65,13 @@ func fillMM2Namespaces() {
 		wg.Add(1)
 		go func(i int) {
 			items, err := GetResourcesDynamically("kafka.strimzi.io", "v1beta2", "kafkamirrormaker2s", Namespaces[i].Name())
-			if logErr(err) {
-				wg.Done()
-				return
+			if err != nil {
+				log.Debug("version v1beta2 not found. Trying v1alpha1")
+				items, err = GetResourcesDynamically("kafka.strimzi.io", "v1alpha1", "kafkamirrormaker2s", Namespaces[i].Name())
+				if logErr(err) {
+					wg.Done()
+					return
+				}
 			}
 			if log.GetLevel() == log.DebugLevel || log.GetLevel() == log.TraceLevel {
 				for _, item := range items {

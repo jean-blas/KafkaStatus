@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -174,20 +175,42 @@ func (n *NAMESPACE) stateGroups() error {
 		return errors.New("No kafka pods in " + n.Name())
 	}
 	const command = "bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --all-groups --verbose --state"
-	stdout, stderr, err := execToPod(command, "kafka", kpods[0].Name, n.Name(), nil)
-	if len(stderr) != 0 {
-		return errors.New(stderr)
-	}
-	if err != nil {
-		return err
-	}
-	lines := strings.Split(stdout, "\n")
+	reK := regexp.MustCompile(`^(\S{4}\d{2,3})-kafka-.*`)
+	currentPod := ""
 	grps := make([]GROUP, 0)
-	for _, line := range lines {
-		if !strings.Contains(line, "#MEMBERS") && strings.TrimSpace(line) != "" {
-			grps = append(grps, GROUP{state: line})
+	for _, pod := range kpods {
+		if clustername != "" {
+			reN := regexp.MustCompile(`(` + strings.Join(strings.Split(clustername, ","), "|") + `)-kafka-.*$`)
+			if !reN.MatchString(pod.Name) {
+				continue
+			}
+		}
+		as := reK.FindStringSubmatch(pod.Name)
+		if !reK.MatchString(pod.Name) {
+			continue
+		}
+		name := as[1]
+		if name == currentPod {
+			continue
+		}
+		currentPod = name
+		stdout, stderr, err := execToPod(command, "kafka", pod.Name, n.Name(), nil)
+		if len(stderr) != 0 {
+			logErr(errors.New(stderr))
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		lines := strings.Split(stdout, "\n")
+		for _, line := range lines {
+			if !strings.Contains(line, "#MEMBERS") && strings.TrimSpace(line) != "" {
+				grps = append(grps, GROUP{state: line})
+			}
 		}
 	}
-	n.Groups = grps
+	if len(grps) > 0 {
+		n.Groups = grps
+	}
 	return nil
 }

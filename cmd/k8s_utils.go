@@ -26,11 +26,16 @@ import (
 )
 
 type NAMESPACE struct {
-	Ns           v1.Namespace
-	Pods         v1.PodList
+	Ns              v1.Namespace
+	Pods            v1.PodList
+	PodTopicDetails []PODTOPICDETAILS
+	Groups          []GROUP
+	Mm2s            []MIRRORMAKER2
+}
+
+type PODTOPICDETAILS struct {
+	podname      string
 	TopicDetails []topicDetails
-	Groups       []GROUP
-	Mm2s         []MIRRORMAKER2
 }
 
 type MIRRORMAKER2 struct {
