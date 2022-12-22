@@ -111,13 +111,27 @@ func (n *NAMESPACE) describeTopics() error {
 		if err != nil {
 			return err
 		}
-		re := regexp.MustCompile(`^Topic:\s(.*)\s*PartitionCount:\s(\d*)\s*ReplicationFactor:\s(\d*)\s*Configs:\s(.*)$`)
+		reOld := regexp.MustCompile(`^Topic:\s(.*)\s*PartitionCount:\s(\d*)\s*ReplicationFactor:\s(\d*)\s*Configs:\s(.*)$`)
+		reNew := regexp.MustCompile(`^Topic:\s(.*)(\s*TopicId:\s.*)\s*PartitionCount:\s(\d*)\s*ReplicationFactor:\s(\d*)\s*Configs:\s(.*)$`)
 		tds := make([]topicDetails, 0)
 		lines := strings.Split(stdout, "\n")
 		for i := 0; i < len(lines); {
 			line := strings.TrimSpace(lines[i])
-			if re.MatchString(line) {
-				as := re.FindStringSubmatch(line)
+			if reNew.MatchString(line) {
+				as := reNew.FindStringSubmatch(line)
+				if len(as) == 6 {
+					p, _ := strconv.Atoi(as[3])
+					r, _ := strconv.Atoi(as[4])
+					partitions := make([]string, p)
+					for j := 0; j < p; j++ {
+						partitions[j] = lines[j+i+1]
+					}
+					details := topicDetails{name: strings.TrimSpace(as[1]), nbOfPartitions: p, replication: r, config: as[5], partitions: partitions}
+					tds = append(tds, details)
+					i += p + 1
+				}
+			} else if reOld.MatchString(line) {
+				as := reOld.FindStringSubmatch(line)
 				if len(as) == 5 {
 					p, _ := strconv.Atoi(as[2])
 					r, _ := strconv.Atoi(as[3])
